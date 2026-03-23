@@ -248,7 +248,7 @@ export default function BlogsPage() {
                                     <FormItem>
                                         <FormLabel>Title</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter blog title" {...field} className="bg-white" />
+                                            <Input placeholder="Enter blog title" {...field} className="border-white/10" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -261,7 +261,7 @@ export default function BlogsPage() {
                                     <FormItem>
                                         <FormLabel>Slug</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="enter-blog-slug" {...field} className="bg-white" />
+                                            <Input placeholder="enter-blog-slug" {...field} className="border-white/10" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -274,7 +274,7 @@ export default function BlogsPage() {
                                     <FormItem>
                                         <FormLabel>Banner Image URL</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="https://example.com/image.jpg" {...field} className="bg-white" />
+                                            <Input placeholder="https://example.com/image.jpg" {...field} className="border-white/10" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>

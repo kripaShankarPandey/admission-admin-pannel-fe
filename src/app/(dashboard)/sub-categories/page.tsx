@@ -270,7 +270,7 @@ export default function SubCategoriesPage() {
                                     <FormItem>
                                         <FormLabel>Sub-Category Name</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter sub-category name" {...field} className="bg-white" />
+                                            <Input placeholder="Enter sub-category name" {...field} className="border-white/10" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -284,11 +284,11 @@ export default function SubCategoriesPage() {
                                         <FormLabel>Parent Category</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
-                                                <SelectTrigger className="bg-white">
+                                                <SelectTrigger className="border-white/10">
                                                     <SelectValue placeholder="Select parent category" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent className="bg-white">
+                                            <SelectContent className="bg-[#212134] border-white/10 text-white">
                                                 {allCategories.map(cat => (
                                                     <SelectItem key={cat.id} value={cat.id.toString()}>
                                                         {cat.courses_category_name}

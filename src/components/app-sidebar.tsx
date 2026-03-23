@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     GraduationCap,
     MapPin,
@@ -15,6 +16,7 @@ import {
     Bell,
 } from "lucide-react";
 
+import { authService } from "@/services/auth-service";
 import {
     Sidebar,
     SidebarContent,
@@ -56,6 +58,23 @@ const singleTypes = [
 ];
 
 export function AppSidebar() {
+    const [user, setUser] = useState<{ name?: string; username?: string; email: string } | null>(null);
+
+    useEffect(() => {
+        const storedUser = localStorage.getItem("admin_user");
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error("Failed to parse admin_user", e);
+            }
+        }
+    }, []);
+
+    const displayName = user?.name || user?.username || "Super Admin";
+    const displayEmail = user?.email || "Admin panel";
+    const initial = displayName.charAt(0).toUpperCase();
+
     return (
         <Sidebar variant="sidebar" collapsible="icon" className="border-r-0">
             <SidebarHeader className="h-auto flex flex-col gap-4 px-4 py-6">
@@ -136,11 +155,11 @@ export function AppSidebar() {
                         }
                     >
                         <Avatar className="h-8 w-8 rounded">
-                            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">AD</AvatarFallback>
+                            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">{initial}</AvatarFallback>
                         </Avatar>
                         <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                            <span className="truncate font-semibold text-sidebar-foreground">Super Admin</span>
-                            <span className="truncate text-[10px] text-muted-foreground">Admin panel</span>
+                            <span className="truncate font-semibold text-sidebar-foreground">{displayName}</span>
+                            <span className="truncate text-[10px] text-muted-foreground">{displayEmail}</span>
                         </div>
                         <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground group-data-[collapsible=icon]:hidden" />
                     </DropdownMenuTrigger>
@@ -150,7 +169,7 @@ export function AppSidebar() {
                         align="end"
                         sideOffset={4}
                     >
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => authService.logout()}>
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Log out</span>
                         </DropdownMenuItem>

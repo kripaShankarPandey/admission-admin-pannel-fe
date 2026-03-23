@@ -32,12 +32,13 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const message = error.response?.data?.message || error.message;
 
-    // if (status === 401) {
-    //   // Clear token and redirect to login if unauthorized
-    //   Cookies.remove("admin_token");
-    //   if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-    //     window.location.href = "/login";
-    //   }
+    if (status === 401) {
+      // Clear token and redirect to login if unauthorized
+      Cookies.remove("admin_token", { path: "/" });
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
     if (status === 403) {
       toast.error("Access Forbidden: You don't have permission to perform this action.");
     } else if (status === 404) {

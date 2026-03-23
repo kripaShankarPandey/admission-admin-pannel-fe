@@ -137,7 +137,7 @@ export default function UsersPage() {
                                                     <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="bg-white">
+                                            <DropdownMenuContent align="end" className="border-white/10">
                                                 <DropdownMenuItem
                                                     onClick={() => handleUpdateRole(user, AdmRole.SUPER_ADMIN)}
                                                     className="cursor-pointer font-medium text-sm"

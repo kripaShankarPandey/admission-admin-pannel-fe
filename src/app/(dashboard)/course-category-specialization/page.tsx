@@ -283,11 +283,11 @@ export default function SpecializationsPage() {
                                         <FormLabel>Sub Course Category</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
-                                                <SelectTrigger className="bg-white">
+                                                <SelectTrigger className="border-white/10">
                                                     <SelectValue placeholder="Select sub course category" />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent className="bg-white">
+                                            <SelectContent className="bg-[#212134] border-white/10 text-white">
                                                 {subCategories.map(sub => (
                                                     <SelectItem key={sub.id} value={sub.id.toString()}>
                                                         {sub.sub_course_category_name}
