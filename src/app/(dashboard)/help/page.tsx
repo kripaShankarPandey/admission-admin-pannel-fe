@@ -8,8 +8,8 @@ export default function HelpPage() {
                 description="Find documentation and guides for managing the platform."
             />
 
-            <div className="prose prose-sm max-w-none text-[#a5a5ba]">
-                <h3 className="text-white">Need Help?</h3>
+            <div className="prose prose-sm max-w-none text-muted-foreground">
+                <h3 className="text-foreground">Need Help?</h3>
                 <p>This admin panel allows you to manage colleges, blogs, and course categories for the Admission Today platform.</p>
             </div>
         </div>

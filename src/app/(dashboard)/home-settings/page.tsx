@@ -97,17 +97,17 @@ export default function HomeSettingsPage() {
 
             <div className="grid gap-6">
                 {/* Banners Section */}
-                <Card className="bg-muted/10 border-white/10 shadow-none">
+                <Card className="bg-card border-border shadow-none">
                     <CardContent className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-white">Carousel Banners</h3>
-                            <Button variant="outline" size="sm" onClick={addBanner} className="bg-muted/20 border-white/10 text-white hover:bg-muted/40 hover:text-white">
+                            <h3 className="text-lg font-semibold text-foreground">Carousel Banners</h3>
+                            <Button variant="outline" size="sm" onClick={addBanner} className="bg-background border-border text-foreground hover:bg-muted/40 hover:text-foreground">
                                 <Plus className="h-4 w-4 mr-2" /> Add Banner
                             </Button>
                         </div>
                         <div className="space-y-4">
                             {(settings.banner || []).map((b, i) => (
-                                <div key={i} className="p-4 border border-white/5 rounded-lg space-y-3 bg-white/5 relative">
+                                <div key={i} className="p-4 border border-border/50 rounded-lg space-y-3 bg-muted/50 relative">
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -118,16 +118,16 @@ export default function HomeSettingsPage() {
                                     </Button>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[#a5a5ba]">Title</Label>
-                                            <Input value={b.title} onChange={e => updateBanner(i, "title", e.target.value)} placeholder="Banner Title" className="bg-muted/20 border-white/10 text-white" />
+                                            <Label className="text-muted-foreground">Title</Label>
+                                            <Input value={b.title} onChange={e => updateBanner(i, "title", e.target.value)} placeholder="Banner Title" className="bg-background border-border text-foreground" />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-[#a5a5ba]">Image URL</Label>
-                                            <Input value={b.image} onChange={e => updateBanner(i, "image", e.target.value)} placeholder="https://..." className="bg-muted/20 border-white/10 text-white" />
+                                            <Label className="text-muted-foreground">Image URL</Label>
+                                            <Input value={b.image} onChange={e => updateBanner(i, "image", e.target.value)} placeholder="https://..." className="bg-background border-border text-foreground" />
                                         </div>
                                         <div className="space-y-2 md:col-span-2">
-                                            <Label className="text-[#a5a5ba]">Link</Label>
-                                            <Input value={b.link} onChange={e => updateBanner(i, "link", e.target.value)} placeholder="/colleges/..." className="bg-muted/20 border-white/10 text-white" />
+                                            <Label className="text-muted-foreground">Link</Label>
+                                            <Input value={b.link} onChange={e => updateBanner(i, "link", e.target.value)} placeholder="/colleges/..." className="bg-background border-border text-foreground" />
                                         </div>
                                     </div>
                                 </div>
@@ -137,24 +137,24 @@ export default function HomeSettingsPage() {
                 </Card>
 
                 {/* Running Text Section */}
-                <Card className="bg-muted/10 border-white/10 shadow-none">
+                <Card className="bg-card border-border shadow-none">
                     <CardContent className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-white">Running Flash Text</h3>
-                            <Button variant="outline" size="sm" onClick={addRunningText} className="bg-muted/20 border-white/10 text-white hover:bg-muted/40 hover:text-white">
+                            <h3 className="text-lg font-semibold text-foreground">Running Flash Text</h3>
+                            <Button variant="outline" size="sm" onClick={addRunningText} className="bg-background border-border text-foreground hover:bg-muted/40 hover:text-foreground">
                                 <Plus className="h-4 w-4 mr-2" /> Add Text
                             </Button>
                         </div>
                         <div className="space-y-4">
                             {(settings.runningText || []).map((rt, i) => (
-                                <div key={i} className="flex gap-2 items-end p-4 border border-white/5 rounded-lg bg-white/5">
+                                <div key={i} className="flex gap-2 items-end p-4 border border-border/50 rounded-lg bg-muted/50">
                                     <div className="flex-1 space-y-2">
-                                        <Label className="text-[#a5a5ba]">Display Text</Label>
-                                        <Input value={rt.text} onChange={e => updateRunningText(i, "text", e.target.value)} className="bg-muted/20 border-white/10 text-white" />
+                                        <Label className="text-muted-foreground">Display Text</Label>
+                                        <Input value={rt.text} onChange={e => updateRunningText(i, "text", e.target.value)} className="bg-background border-border text-foreground" />
                                     </div>
                                     <div className="flex-1 space-y-2">
-                                        <Label className="text-[#a5a5ba]">Action Link</Label>
-                                        <Input value={rt.link} onChange={e => updateRunningText(i, "link", e.target.value)} className="bg-muted/20 border-white/10 text-white" />
+                                        <Label className="text-muted-foreground">Action Link</Label>
+                                        <Input value={rt.link} onChange={e => updateRunningText(i, "link", e.target.value)} className="bg-background border-border text-foreground" />
                                     </div>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => removeRunningText(i)}>
                                         <Trash2 className="h-4 w-4" />
@@ -166,22 +166,22 @@ export default function HomeSettingsPage() {
                 </Card>
 
                 {/* SEO Section */}
-                <Card className="bg-muted/10 border-white/10 shadow-none">
+                <Card className="bg-card border-border shadow-none">
                     <CardContent className="p-6 space-y-4">
-                        <h3 className="text-lg font-semibold text-white">Home SEO Metadata</h3>
+                        <h3 className="text-lg font-semibold text-foreground">Home SEO Metadata</h3>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label className="text-[#a5a5ba]">Meta Title</Label>
+                                <Label className="text-muted-foreground">Meta Title</Label>
                                 <Input
                                     value={settings.seoData?.metaTitle || ""}
                                     onChange={e => setSettings({ ...settings, seoData: { ...settings.seoData, metaTitle: e.target.value } })}
-                                    className="bg-muted/20 border-white/10 text-white"
+                                    className="bg-background border-border text-foreground"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label className="text-[#a5a5ba]">Meta Description</Label>
+                                <Label className="text-muted-foreground">Meta Description</Label>
                                 <textarea
-                                    className="flex min-h-[100px] w-full rounded-md border border-white/10 bg-muted/20 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-white"
+                                    className="flex min-h-[100px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-foreground"
                                     value={settings.seoData?.metaDescription || ""}
                                     onChange={e => setSettings({ ...settings, seoData: { ...settings.seoData, metaDescription: e.target.value } })}
                                 />

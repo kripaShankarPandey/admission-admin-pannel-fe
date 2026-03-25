@@ -112,10 +112,10 @@ export default function CollegesPage() {
     const filters = (
         <div className="flex gap-2">
             <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="w-[140px] h-9 bg-muted/20 border-white/10 text-white">
+                <SelectTrigger className="w-[140px] h-9 bg-background border-border text-foreground">
                     <SelectValue placeholder="All Cities" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#212134] border-white/10 text-white">
+                <SelectContent className="bg-background border-border text-foreground">
                     <SelectItem value="all">All Cities</SelectItem>
                     {cities.map((city) => (
                         <SelectItem key={city.id} value={city.id.toString()}>
@@ -125,10 +125,10 @@ export default function CollegesPage() {
                 </SelectContent>
             </Select>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[140px] h-9 bg-muted/20 border-white/10 text-white">
+                <SelectTrigger className="w-[140px] h-9 bg-background border-border text-foreground">
                     <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#212134] border-white/10 text-white">
+                <SelectContent className="bg-background border-border text-foreground">
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
@@ -152,15 +152,15 @@ export default function CollegesPage() {
             actions={filters}
         >
             <Table>
-                <TableHeader className="bg-muted/10">
-                    <TableRow className="hover:bg-transparent border-b border-white/5">
-                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">ID</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">College Name</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">City</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Type</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Featured</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Status</TableHead>
-                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Actions</TableHead>
+                <TableHeader className="bg-card">
+                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">College Name</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">City</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Type</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Featured</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
+                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -169,28 +169,28 @@ export default function CollegesPage() {
                             <TableCell colSpan={7} className="text-center py-10">
                                 <div className="flex items-center justify-center gap-2">
                                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-[#a5a5ba]">Loading...</span>
+                                    <span className="text-muted-foreground">Loading...</span>
                                 </div>
                             </TableCell>
                         </TableRow>
                     ) : colleges.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10 text-[#a5a5ba] font-medium">
+                            <TableCell colSpan={7} className="text-center py-10 text-muted-foreground font-medium">
                                 No colleges found.
                             </TableCell>
                         </TableRow>
                     ) : (
                         colleges.map((college) => (
-                            <TableRow key={college.id} className="group hover:bg-white/5 border-b border-white/5">
-                                <TableCell className="text-[#a5a5ba] font-medium text-[13px]">#{college.id}</TableCell>
-                                <TableCell className="font-semibold text-white text-[13px]">{college.college_name || "Unknown"}</TableCell>
-                                <TableCell className="text-[#a5a5ba] text-[13px]">{college.city?.city || "N/A"}</TableCell>
-                                <TableCell className="text-[#a5a5ba] text-[13px]">{college.college_type || "N/A"}</TableCell>
+                            <TableRow key={college.id} className="group hover:bg-muted/50 border-b border-border/50">
+                                <TableCell className="text-muted-foreground font-medium text-[13px]">#{college.id}</TableCell>
+                                <TableCell className="font-semibold text-foreground text-[13px]">{college.college_name || "Unknown"}</TableCell>
+                                <TableCell className="text-muted-foreground text-[13px]">{college.city?.city || "N/A"}</TableCell>
+                                <TableCell className="text-muted-foreground text-[13px]">{college.college_type || "N/A"}</TableCell>
                                 <TableCell>
                                     {college.isFeatured ? (
                                         <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">Featured</Badge>
                                     ) : (
-                                        <Badge variant="outline" className="bg-muted/10 text-[#a5a5ba] border-white/5 shadow-none text-[10px] font-bold uppercase py-0 px-2">Regular</Badge>
+                                        <Badge variant="outline" className="bg-card text-muted-foreground border-border/50 shadow-none text-[10px] font-bold uppercase py-0 px-2">Regular</Badge>
                                     )}
                                 </TableCell>
                                 <TableCell>
@@ -208,7 +208,7 @@ export default function CollegesPage() {
                                             onClick={() => handleEdit(college.id)}
                                             className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
-                                            <Edit className="h-4 w-4 text-[#a5a5ba]" />
+                                            <Edit className="h-4 w-4 text-muted-foreground" />
                                         </Button>
                                         <Button
                                             variant="ghost"
@@ -226,7 +226,7 @@ export default function CollegesPage() {
                 </TableBody>
             </Table>
             {meta?.pagination && (
-                <div className="p-4 border-t border-white/5 bg-white/5">
+                <div className="p-4 border-t border-border/50 bg-muted/50">
                     <Pagination
                         currentPage={page}
                         pageCount={meta.pagination.pageCount}
