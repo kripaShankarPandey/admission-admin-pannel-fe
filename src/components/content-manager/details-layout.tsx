@@ -73,10 +73,10 @@ export function DetailsLayout({
                                 <Trash2 className="h-5 w-5" />
                             </Button>
                         )}
-                        <Button variant="outline" onClick={onSave} className="bg-muted/20 border-white/10 text-white hover:bg-muted/40 hover:text-white">
+                        <Button variant="outline" onClick={onSave} className="bg-background border-border text-foreground hover:bg-muted/40 hover:text-foreground">
                             Save
                         </Button>
-                        <Button onClick={onPublish} className="bg-primary hover:bg-primary/90 text-white font-semibold">
+                        <Button onClick={onPublish} className="bg-primary hover:bg-primary/90 text-foreground font-semibold">
                             <Send className="mr-2 h-4 w-4" />
                             Publish
                         </Button>
@@ -87,15 +87,15 @@ export function DetailsLayout({
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Main Content Area */}
                 <div className="lg:col-span-3">
-                    <div className="bg-muted/10 rounded-lg border border-white/10 shadow-sm p-6 space-y-6">
+                    <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
                         {children}
                     </div>
                 </div>
 
                 {/* Sidebar Info Area */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-muted/10 rounded-lg border border-white/10 shadow-sm p-4 space-y-4">
-                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#a5a5ba]">Information</h3>
+                    <div className="bg-card rounded-lg border border-border shadow-sm p-4 space-y-4">
+                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Information</h3>
                         <div className="space-y-3">
                             {info?.id && (
                                 <div className="flex flex-col gap-1">

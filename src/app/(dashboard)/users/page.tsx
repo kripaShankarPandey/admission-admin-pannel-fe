@@ -81,14 +81,14 @@ export default function UsersPage() {
             onCreateClick={() => toast.info("User creation is handled via signup.")}
         >
             <Table>
-                <TableHeader className="bg-muted/10">
-                    <TableRow className="hover:bg-transparent border-b border-white/5">
-                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">ID</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Username</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Email</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Confirmed</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Role</TableHead>
-                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Actions</TableHead>
+                <TableHeader className="bg-card">
+                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Username</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Email</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Confirmed</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Role</TableHead>
+                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -97,18 +97,18 @@ export default function UsersPage() {
                             <TableCell colSpan={6} className="text-center py-10">
                                 <div className="flex items-center justify-center gap-2">
                                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-[#a5a5ba]">Loading...</span>
+                                    <span className="text-muted-foreground">Loading...</span>
                                 </div>
                             </TableCell>
                         </TableRow>
                     ) : (filteredUsers?.length || 0) > 0 ? (
                         filteredUsers.map((user) => (
-                            <TableRow key={user.id} className="group hover:bg-white/5 border-b border-white/5">
-                                <TableCell className="text-[#a5a5ba] font-medium text-[13px]">#{user.id}</TableCell>
-                                <TableCell className="font-semibold text-white text-[13px]">
+                            <TableRow key={user.id} className="group hover:bg-muted/50 border-b border-border/50">
+                                <TableCell className="text-muted-foreground font-medium text-[13px]">#{user.id}</TableCell>
+                                <TableCell className="font-semibold text-foreground text-[13px]">
                                     {user?.username || "Unknown"}
                                 </TableCell>
-                                <TableCell className="text-[#a5a5ba] text-[13px]">{user?.email || "N/A"}</TableCell>
+                                <TableCell className="text-muted-foreground text-[13px]">{user?.email || "N/A"}</TableCell>
                                 <TableCell>
                                     {user?.confirmed ? (
                                         <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
@@ -137,7 +137,7 @@ export default function UsersPage() {
                                                     <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                                 </Button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="border-white/10">
+                                            <DropdownMenuContent align="end" className="border-border">
                                                 <DropdownMenuItem
                                                     onClick={() => handleUpdateRole(user, AdmRole.SUPER_ADMIN)}
                                                     className="cursor-pointer font-medium text-sm"

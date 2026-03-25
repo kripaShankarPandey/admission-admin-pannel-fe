@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Inter_Tight, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({
+const interTight = Inter_Tight({
   variable: "--font-inter",
   subsets: ["latin"],
 });
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.variable} ${geistMono.variable} antialiased h-full`} suppressHydrationWarning>
+      <body className={`${interTight.variable} ${geistMono.variable} antialiased font-sans h-full`} suppressHydrationWarning>
         <TooltipProvider>
           {children}
           <Toaster />

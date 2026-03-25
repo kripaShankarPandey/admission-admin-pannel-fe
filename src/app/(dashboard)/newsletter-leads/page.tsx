@@ -63,12 +63,12 @@ export default function NewsletterLeadsPage() {
             onSearchChange={setSearch}
         >
             <Table>
-                <TableHeader className="bg-muted/10">
-                    <TableRow className="hover:bg-transparent border-b border-white/5">
-                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">ID</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Email Address</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Date Joined</TableHead>
-                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-[#a5a5ba]">Actions</TableHead>
+                <TableHeader className="bg-card">
+                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Email Address</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Date Joined</TableHead>
+                        <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -77,21 +77,21 @@ export default function NewsletterLeadsPage() {
                             <TableCell colSpan={4} className="text-center py-10">
                                 <div className="flex items-center justify-center gap-2">
                                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-[#a5a5ba]">Loading...</span>
+                                    <span className="text-muted-foreground">Loading...</span>
                                 </div>
                             </TableCell>
                         </TableRow>
                     ) : (filteredLeads?.length || 0) > 0 ? (
                         filteredLeads.map(lead => (
-                            <TableRow key={lead.id} className="group hover:bg-white/5 border-b border-white/5">
-                                <TableCell className="text-[#a5a5ba] font-medium text-[13px]">#{lead.id}</TableCell>
+                            <TableRow key={lead.id} className="group hover:bg-muted/50 border-b border-border/50">
+                                <TableCell className="text-muted-foreground font-medium text-[13px]">#{lead.id}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
-                                        <Mail className="h-4 w-4 text-[#a5a5ba] shrink-0" />
-                                        <span className="font-semibold text-white text-[13px]">{lead.email}</span>
+                                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <span className="font-semibold text-foreground text-[13px]">{lead.email}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell className="text-[#a5a5ba] text-[13px]">
+                                <TableCell className="text-muted-foreground text-[13px]">
                                     {format(new Date(lead.createdAt), "MMM dd, yyyy")}
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -108,7 +108,7 @@ export default function NewsletterLeadsPage() {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={4} className="text-center py-10 text-[#a5a5ba] font-medium">
+                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground font-medium">
                                 No subscribers found.
                             </TableCell>
                         </TableRow>
