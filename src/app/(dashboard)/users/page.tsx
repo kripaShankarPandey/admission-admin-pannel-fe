@@ -11,11 +11,10 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShieldCheck, User as UserIcon, MoreHorizontal } from "lucide-react";
+import { Trash2, ShieldCheck, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -128,14 +127,10 @@ export default function UsersPage() {
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                                                </Button>
+                                            <DropdownMenuTrigger
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none group-hover:opacity-100 aria-expanded:bg-muted aria-expanded:text-foreground"
+                                            >
+                                                <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="border-border">
                                                 <DropdownMenuItem

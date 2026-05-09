@@ -237,7 +237,7 @@ export default function CategoriesPage() {
                             <TableHead className="w-[60px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Priority</TableHead>
                             <TableHead className="w-[60px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Image</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Discipline Name</TableHead>
-                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Sub-categories</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Courses</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                             <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                         </TableRow>

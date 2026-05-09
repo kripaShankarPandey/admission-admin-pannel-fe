@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import {
     GraduationCap,
@@ -50,8 +50,8 @@ const collectionTypes = [
     { title: "College", icon: GraduationCap, url: "/colleges" },
     { title: "Contact", icon: Mail, url: "/contact-leads" },
     { title: "Counselor", icon: Users, url: "/counselors" },
-    { title: "Discipline", icon: Layers, url: "/categories" },
-    { title: "Courses", icon: Layers, url: "/sub-categories" },
+    { title: "Discipline", icon: Layers, url: "/discipline" },
+    { title: "Courses", icon: Layers, url: "/courses" },
     { title: "Specialization", icon: Layers, url: "/course-category-specialization" },
     { title: "Newsletter subscribe", icon: Bell, url: "/newsletter-leads" },
     { title: "User", icon: UserCircle, url: "/users" },
@@ -59,23 +59,25 @@ const collectionTypes = [
 
 const singleTypes = [
     { title: "Global Settings", icon: Settings, url: "/settings" },
-    { title: "Home Page", icon: Home, url: "/home-settings" },
+    { title: "HOME", icon: Home, url: "/home-settings" },
 ];
 
 export function AppSidebar() {
     const pathname = usePathname();
-    const [user, setUser] = useState<{ name?: string; username?: string; email: string } | null>(null);
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("admin_user");
-        if (storedUser) {
-            try {
-                setUser(JSON.parse(storedUser));
-            } catch (e) {
-                console.error("Failed to parse admin_user", e);
-            }
+    const storedUser = useSyncExternalStore(
+        () => () => {},
+        () => localStorage.getItem("admin_user"),
+        () => null
+    );
+    const user = useMemo(() => {
+        if (!storedUser) return null;
+        try {
+            return JSON.parse(storedUser) as { name?: string; username?: string; email: string };
+        } catch (e) {
+            console.error("Failed to parse admin_user", e);
+            return null;
         }
-    }, []);
+    }, [storedUser]);
 
     const displayName = user?.name || user?.username || "Super Admin";
     const displayEmail = user?.email || "Admin panel";

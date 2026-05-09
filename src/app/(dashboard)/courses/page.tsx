@@ -70,7 +70,7 @@ export default function SubCategoriesPage() {
             setMeta(response?.meta?.pagination || null);
         } catch (error) {
             console.error(error);
-            toast.error("Failed to fetch sub-categories.");
+            toast.error("Failed to fetch courses.");
             setSubCategories([]);
         } finally {
             setIsLoading(false);
@@ -99,14 +99,14 @@ export default function SubCategoriesPage() {
 
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this sub-category?")) return;
+        if (!confirm("Are you sure you want to delete this course?")) return;
         try {
             await subCourseCategoryService.delete(id);
-            toast.success("Sub-category deleted successfully.");
+            toast.success("Course deleted successfully.");
             fetchSubCategories();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to delete sub-category.");
+            toast.error("Failed to delete course.");
         }
     };
 
@@ -115,7 +115,7 @@ export default function SubCategoriesPage() {
             <ListingLayout
                 title="Courses"
                 count={meta?.total || 0}
-                onCreateClick={() => router.push("/sub-categories/new")}
+                onCreateClick={() => router.push("/courses/new")}
                 onSearchChange={(val) => {
                     setSearch(val);
                     setCurrentPage(1);
@@ -125,8 +125,8 @@ export default function SubCategoriesPage() {
                     <TableHeader className="bg-card">
                         <TableRow className="hover:bg-transparent border-b border-border/50">
                             <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
-                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Sub-Category Name</TableHead>
-                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Parent Category</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Course Name</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Parent Discipline</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Specializations</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                             <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -176,7 +176,7 @@ export default function SubCategoriesPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => router.push(`/sub-categories/${sub.id}`)}
+                                                onClick={() => router.push(`/courses/${sub.id}`)}
                                                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                                             >
                                                 <Edit className="h-4 w-4 text-muted-foreground" />
@@ -196,7 +196,7 @@ export default function SubCategoriesPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center py-10 text-muted-foreground font-medium">
-                                    No sub-categories found.
+                                    No courses found.
                                 </TableCell>
                             </TableRow>
                         )}
