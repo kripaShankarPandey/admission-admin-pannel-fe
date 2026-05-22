@@ -15,6 +15,7 @@ import { Trash2, Mail, Phone, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
 
 export default function ContactLeadsPage() {
     const [leads, setLeads] = useState<ContactLead[]>([]);
@@ -30,7 +31,7 @@ export default function ContactLeadsPage() {
         try {
             const data = await leadService.getContactLeads();
             setLeads(data || []);
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to fetch contact leads.");
             setLeads([]);
@@ -46,7 +47,7 @@ export default function ContactLeadsPage() {
             await leadService.deleteContactLead(id);
             toast.success("Message deleted successfully.");
             fetchLeads();
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to delete message.");
         }
@@ -61,8 +62,10 @@ export default function ContactLeadsPage() {
     return (
         <ListingLayout
             title="Contact Us Lead"
+            description="Review inbound contact requests, inspect message details, and remove resolved leads."
             count={filteredLeads.length}
             onSearchChange={setSearch}
+            searchPlaceholder="Search by name, email, or message..."
         >
             <Table>
                 <TableHeader className="bg-card">
@@ -77,14 +80,7 @@ export default function ContactLeadsPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow>
-                            <TableCell colSpan={6} className="text-center py-10">
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-muted-foreground">Loading...</span>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={6} isLoading emptyLabel="" />
                     ) : (filteredLeads?.length || 0) > 0 ? (
                         filteredLeads.map(lead => (
                             <TableRow key={lead.id} className="group hover:bg-muted/50 border-b border-border/50">
@@ -124,11 +120,7 @@ export default function ContactLeadsPage() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow>
-                            <TableCell colSpan={6} className="text-center py-10 text-muted-foreground font-medium">
-                                No contact leads found.
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={6} emptyLabel="No contact leads found." />
                     )}
                 </TableBody>
             </Table>

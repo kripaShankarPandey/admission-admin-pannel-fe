@@ -14,6 +14,7 @@ export interface CityQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
+  state?: string;
   courseCategoryId?: number;
   subCourseCategoryId?: number;
 }

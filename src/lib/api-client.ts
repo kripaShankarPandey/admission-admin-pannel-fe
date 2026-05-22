@@ -2,10 +2,14 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+if (!API_URL) {
+  throw new Error("Missing required environment variable: NEXT_PUBLIC_API_URL");
+}
 
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL.replace(/\/+$/, ""),
   headers: {
     "Content-Type": "application/json",
   },
@@ -22,7 +26,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Add a response interceptor to handle specialized errors
@@ -35,25 +39,37 @@ apiClient.interceptors.response.use(
     if (status === 401) {
       // Clear token and redirect to login if unauthorized
       Cookies.remove("admin_token", { path: "/" });
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
         window.location.href = "/login";
       }
     }
     if (status === 403) {
-      toast.error("Access Forbidden: You don't have permission to perform this action.");
+      toast.error(
+        "Access Forbidden: You don't have permission to perform this action.",
+      );
     } else if (status === 404) {
-      toast.error("Resource not found. Please check the URL or try again later.");
+      toast.error(
+        "Resource not found. Please check the URL or try again later.",
+      );
     } else if (status >= 500) {
-      toast.error("Server Error: Something went wrong on our end. Please contact support.");
+      toast.error(
+        "Server Error: Something went wrong on our end. Please contact support.",
+      );
     } else if (error.code === "ERR_NETWORK") {
       toast.error("Network Error: Please check your internet connection.");
     } else {
       // Avoid showing toasts for login errors here as they are handled in the LoginPage
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      if (
+        typeof window !== "undefined" &&
+        window.location.pathname !== "/login"
+      ) {
         toast.error(message || "An unexpected error occurred.");
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );

@@ -33,6 +33,10 @@ export interface College {
   internship?: string;
   exchange_program?: string;
   sponsorship?: string;
+  stipend_year_1?: string;
+  stipend_year_2?: string;
+  stipend_year_3?: string;
+  no_of_ot?: string;
   hospital_bed?: string;
   airport?: string;
   railway_station?: string;
@@ -44,6 +48,7 @@ export interface College {
   average_ot?: string;
   clinical_rotation?: string;
   medical_camping?: string;
+  clinical_excilence_lab?: JsonValue[];
   cutoff_state_enabled?: boolean;
   cutoff_all_india_enabled?: boolean;
   cutoff_minority_enabled?: boolean;
@@ -55,8 +60,13 @@ export interface College {
   college_description: string;
   college_rating: number;
   college_type: string;
-  college_image: string;
+  college_image?: string;
   gallery?: string[];
+  campus_tour_icon?: string;
+  podcast?: string;
+  meta_title?: string;
+  meta_description?: string;
+  keywords?: string;
   cityId?: number;
   city?: {
     id: number;
@@ -106,6 +116,18 @@ export interface CollegeQueryParams {
   isFeatured?: boolean;
 }
 
+export interface CollegeBulkUploadResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: Array<{
+    row: number;
+    college_name?: string;
+    message: string;
+  }>;
+}
+
 export const collegeService = {
   async getAll(params?: CollegeQueryParams) {
     const response = await apiClient.get<PaginatedResponse<College>>("/college", { params });
@@ -124,6 +146,22 @@ export const collegeService = {
 
   async create(data: Partial<College>) {
     const response = await apiClient.post<College>("/college", data);
+    return response.data;
+  },
+
+  async bulkUpload(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<CollegeBulkUploadResult>(
+      "/college/bulk-upload",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
     return response.data;
   },
 

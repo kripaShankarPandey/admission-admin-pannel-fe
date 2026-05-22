@@ -15,6 +15,7 @@ import { Trash2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
 
 export default function NewsletterLeadsPage() {
     const [leads, setLeads] = useState<NewsletterLead[]>([]);
@@ -30,7 +31,7 @@ export default function NewsletterLeadsPage() {
         try {
             const data = await leadService.getNewsletterLeads();
             setLeads(data || []);
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to fetch newsletter subscribers.");
             setLeads([]);
@@ -46,7 +47,7 @@ export default function NewsletterLeadsPage() {
             await leadService.deleteNewsletterLead(id);
             toast.success("Subscriber removed successfully.");
             fetchLeads();
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to remove subscriber.");
         }
@@ -59,8 +60,10 @@ export default function NewsletterLeadsPage() {
     return (
         <ListingLayout
             title="Newsletter Subscription"
+            description="Track newsletter opt-ins, search the subscriber base, and prune invalid records."
             count={filteredLeads.length}
             onSearchChange={setSearch}
+            searchPlaceholder="Search by subscriber email..."
         >
             <Table>
                 <TableHeader className="bg-card">
@@ -73,14 +76,7 @@ export default function NewsletterLeadsPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-center py-10">
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-muted-foreground">Loading...</span>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={4} isLoading emptyLabel="" />
                     ) : (filteredLeads?.length || 0) > 0 ? (
                         filteredLeads.map(lead => (
                             <TableRow key={lead.id} className="group hover:bg-muted/50 border-b border-border/50">
@@ -107,11 +103,7 @@ export default function NewsletterLeadsPage() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-center py-10 text-muted-foreground font-medium">
-                                No subscribers found.
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={4} emptyLabel="No subscribers found." />
                     )}
                 </TableBody>
             </Table>

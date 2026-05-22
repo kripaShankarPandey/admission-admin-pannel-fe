@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     Table,
@@ -19,7 +19,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Download, Edit, Trash2, Upload } from "lucide-react";
+import type {
+    College,
+    CollegeBulkUploadResult,
+    CollegeQueryParams,
+} from "@/services/college-service";
 import { collegeService } from "@/services/college-service";
 import { cityService } from "@/services/city-service";
 import { courseCategoryService } from "@/services/course-category-service";
@@ -27,18 +32,167 @@ import { Pagination } from "@/components/pagination";
 import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
+
+const COLLEGE_IMPORT_HEADERS = [
+    "college_name",
+    "slug",
+    "NIRF_rank",
+    "established_year",
+    "college_description",
+    "college_type",
+    "state",
+    "city_name",
+    "mgmt_type",
+    "approval",
+    "status",
+    "affiliated_with",
+    "campus_area",
+    "naac",
+    "nba",
+    "priority",
+    "isFeatured",
+    "college_rating",
+    "college_image",
+    "gallery",
+    "campus_tour_icon",
+    "podcast",
+    "meta_title",
+    "meta_description",
+    "keywords",
+    "admission_counselling",
+    "eligibility",
+    "exam_accepted",
+    "internship",
+    "exchange_program",
+    "sponsorship",
+    "stipend_year_1",
+    "stipend_year_2",
+    "stipend_year_3",
+    "hospital_bed",
+    "no_of_ot",
+    "airport",
+    "railway_station",
+    "bus_stand",
+    "total_bed",
+    "ss_bed",
+    "ms_bed",
+    "opd_running",
+    "average_ot",
+    "clinical_rotation",
+    "medical_camping",
+    "courses",
+    "add_on_facilities",
+    "clinical_excilence_lab",
+];
+
+const COLLEGE_IMPORT_SAMPLE = [
+    "Sample Medical College",
+    "sample-medical-college",
+    "25",
+    "1998",
+    "Short overview of the college",
+    "Private",
+    "Maharashtra",
+    "Mumbai",
+    "Private",
+    "NMC",
+    "Published",
+    "Sample University",
+    "20 acres",
+    "A",
+    "Yes",
+    "1",
+    "yes",
+    "4",
+    "https://example.com/college.jpg",
+    "https://example.com/gallery-1.jpg; https://example.com/gallery-2.jpg",
+    "stethoscope",
+    "https://example.com/podcast.mp3",
+    "Sample Medical College Admission 2026",
+    "Sample Medical College fees, courses, admission and facilities.",
+    "medical college, mbbs, neet",
+    "MBBS; BDS",
+    "NEET qualified",
+    "NEET UG",
+    "Available",
+    "Available",
+    "Available",
+    "12000",
+    "14000",
+    "16000",
+    "750",
+    "12",
+    "25 km",
+    "10 km",
+    "5 km",
+    "750",
+    "150",
+    "600",
+    "Yes",
+    "45",
+    "Available",
+    "Available",
+    '[{"course":"MBBS","department":"Clinical","labs":["Anatomy Lab"]}]',
+    '[{"name":"Hostel","description":"Separate hostel for students"}]',
+    '[{"course":"MBBS","department":"Clinical","labs":["Anatomy Lab","Physiology Lab"]}]',
+];
+
+const escapeCsvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+
+const getApiErrorMessage = (error: unknown) => {
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error
+    ) {
+        const response = (error as { response?: { data?: { message?: unknown } } })
+            .response;
+        const message = response?.data?.message;
+        if (Array.isArray(message)) return message.join(", ");
+        if (typeof message === "string") return message;
+    }
+    return "Failed to upload colleges";
+};
+
+type PaginationMeta = {
+    pagination: {
+        page: number;
+        pageSize: number;
+        pageCount: number;
+        total: number;
+    };
+};
+
+type CityFilter = {
+    id: number;
+    city: string;
+};
+
+type CourseCategoryFilter = {
+    id: number;
+    courses_category_name: string;
+};
+
+type CollegeListQueryParams = CollegeQueryParams & {
+    cityId?: number;
+};
 
 export default function CollegesPage() {
     const router = useRouter();
-    const [colleges, setColleges] = useState<any[]>([]);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [colleges, setColleges] = useState<College[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [page, setPage] = useState(1);
-    const [meta, setMeta] = useState<any>(null);
+    const [meta, setMeta] = useState<PaginationMeta | null>(null);
+    const [bulkUploadResult, setBulkUploadResult] =
+        useState<CollegeBulkUploadResult | null>(null);
 
     // Filter states
-    const [cities, setCities] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
+    const [cities, setCities] = useState<CityFilter[]>([]);
+    const [categories, setCategories] = useState<CourseCategoryFilter[]>([]);
     const [selectedCity, setSelectedCity] = useState("all");
     const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -47,7 +201,7 @@ export default function CollegesPage() {
     const fetchColleges = useCallback(async () => {
         try {
             setLoading(true);
-            const params: any = {
+            const params: CollegeListQueryParams = {
                 page,
                 pageSize: 10,
                 search: debouncedSearch,
@@ -92,6 +246,54 @@ export default function CollegesPage() {
         router.push("/colleges/create");
     };
 
+    const handleDownloadTemplate = () => {
+        const rows = [COLLEGE_IMPORT_HEADERS, COLLEGE_IMPORT_SAMPLE]
+            .map((row) => row.map(escapeCsvCell).join(","))
+            .join("\n");
+        const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = "college-bulk-upload-template.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleBulkUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!file) return;
+
+        try {
+            setIsUploading(true);
+            setBulkUploadResult(null);
+            const result = await collegeService.bulkUpload(file);
+            setBulkUploadResult(result);
+
+            if (result.failed > 0) {
+                toast.warning(
+                    `Import completed with ${result.failed} failed row${result.failed === 1 ? "" : "s"}`,
+                );
+            } else {
+                toast.success(
+                    `Imported ${result.created + result.updated} college${result.created + result.updated === 1 ? "" : "s"}`,
+                );
+            }
+
+            setPage(1);
+            fetchColleges();
+        } catch (error) {
+            console.error("Error uploading colleges:", error);
+            toast.error(getApiErrorMessage(error));
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleEdit = (id: number) => {
         router.push(`/colleges/${id}`);
     };
@@ -110,7 +312,35 @@ export default function CollegesPage() {
     };
 
     const filters = (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={handleBulkUpload}
+            />
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadTemplate}
+                className="h-9 gap-1.5 bg-background border-border/50 text-xs font-semibold"
+            >
+                <Download className="h-3.5 w-3.5" />
+                Template
+            </Button>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="h-9 gap-1.5 bg-background border-border/50 text-xs font-semibold"
+            >
+                <Upload className="h-3.5 w-3.5" />
+                {isUploading ? "Uploading..." : "Upload Excel"}
+            </Button>
             <Select value={selectedCity} onValueChange={setSelectedCity}>
                 <SelectTrigger className="w-[140px] h-9 bg-background border-border text-foreground">
                     <SelectValue placeholder="All Cities" />
@@ -143,14 +373,52 @@ export default function CollegesPage() {
     return (
         <ListingLayout
             title="College"
+            description="Manage college records, filter the directory, and import bulk updates from Excel."
             count={meta?.pagination?.total || 0}
             onCreateClick={handleCreate}
+            createLabel="Add college"
             onSearchChange={(val) => {
                 setSearchTerm(val);
                 setPage(1);
             }}
+            searchPlaceholder="Search colleges..."
             actions={filters}
         >
+            {bulkUploadResult && (
+                <div className="border-b border-border/50 bg-muted/40 p-4">
+                    <div className="flex flex-col gap-3 rounded-lg border border-border/50 bg-background p-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <div className="text-sm font-semibold text-foreground">
+                                Excel import completed
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                                {bulkUploadResult.totalRows} rows processed ·{" "}
+                                {bulkUploadResult.created} created ·{" "}
+                                {bulkUploadResult.updated} updated ·{" "}
+                                {bulkUploadResult.failed} failed
+                            </div>
+                        </div>
+                        {bulkUploadResult.errors.length > 0 && (
+                            <div className="max-h-32 w-full overflow-auto rounded-md border border-destructive/20 bg-destructive/5 p-2 text-xs text-destructive sm:max-w-xl">
+                                {bulkUploadResult.errors.slice(0, 8).map((error) => (
+                                    <div key={`${error.row}-${error.message}`}>
+                                        Row {error.row}
+                                        {error.college_name
+                                            ? ` (${error.college_name})`
+                                            : ""}
+                                        : {error.message}
+                                    </div>
+                                ))}
+                                {bulkUploadResult.errors.length > 8 && (
+                                    <div className="mt-1 font-medium">
+                                        +{bulkUploadResult.errors.length - 8} more errors
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             <Table>
                 <TableHeader className="bg-card">
                     <TableRow className="hover:bg-transparent border-b border-border/50">
@@ -165,20 +433,9 @@ export default function CollegesPage() {
                 </TableHeader>
                 <TableBody>
                     {loading ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10">
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-muted-foreground">Loading...</span>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={7} isLoading emptyLabel="" />
                     ) : colleges.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10 text-muted-foreground font-medium">
-                                No colleges found.
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={7} emptyLabel="No colleges found." />
                     ) : (
                         colleges.map((college) => (
                             <TableRow key={college.id} className="group hover:bg-muted/50 border-b border-border/50">

@@ -6,7 +6,17 @@ export interface Blog {
   title: string;
   slug: string;
   banner: string;
+  excerpt?: string;
   description: string;
+  meta_title?: string;
+  meta_description?: string;
+  keywords?: string;
+  categoryId?: number;
+  category?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
@@ -16,6 +26,7 @@ export interface BlogQueryParams {
   page?: number;
   pageSize?: number;
   search?: string;
+  status?: "published" | "draft";
 }
 
 export const blogService = {

@@ -7,6 +7,9 @@ export interface BlogCategory {
   slug: string;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    blogs: number;
+  };
 }
 
 export interface BlogCategoryQueryParams {

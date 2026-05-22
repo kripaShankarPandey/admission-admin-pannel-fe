@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useState, useCallback } from "react";
 import { blogService, type Blog, type BlogQueryParams } from "@/services/blog-service";
 import {
@@ -19,6 +20,7 @@ import { Pagination } from "@/components/pagination";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { useRouter } from "next/navigation";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
 
 export default function BlogsPage() {
     const router = useRouter();
@@ -41,18 +43,21 @@ export default function BlogsPage() {
                 page: currentPage,
                 pageSize,
                 search: debouncedSearch || undefined,
+                status: statusFilter === "published" || statusFilter === "draft"
+                    ? statusFilter
+                    : undefined,
             };
             const response = await blogService.getAll(params);
             setBlogs(response.data || []);
             setMeta(response?.meta?.pagination || null);
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to fetch blogs.");
             setBlogs([]);
         } finally {
             setIsLoading(false);
         }
-    }, [currentPage, debouncedSearch]);
+    }, [currentPage, debouncedSearch, statusFilter]);
 
     useEffect(() => {
         fetchBlogs();
@@ -73,7 +78,7 @@ export default function BlogsPage() {
             await blogService.delete(id);
             toast.success("Blog deleted successfully.");
             fetchBlogs();
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             toast.error("Failed to delete blog.");
         }
@@ -82,12 +87,15 @@ export default function BlogsPage() {
     return (
         <ListingLayout
             title="Blog"
+            description="Manage editorial content, review publication status, and keep the article library organized."
             count={meta?.total}
             onCreateClick={handleCreateNew}
+            createLabel="Create blog"
             onSearchChange={(val) => {
                 setSearch(val);
                 setCurrentPage(1);
             }}
+            searchPlaceholder="Search blog titles..."
             onFilterChange={(filter) => {
                 setStatusFilter(filter.status || "");
                 setCurrentPage(1);
@@ -98,7 +106,9 @@ export default function BlogsPage() {
                     <TableRow className="hover:bg-transparent border-b border-border/50">
                         <TableHead className="w-[60px]"></TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground w-1/3">Title</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Category</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Slug</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">SEO</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Created At</TableHead>
                         <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
@@ -106,23 +116,9 @@ export default function BlogsPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow>
-                            <TableCell colSpan={6} className="h-48 text-center">
-                                <div className="flex flex-col items-center justify-center gap-3">
-                                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-sm font-medium text-muted-foreground">Loading blogs...</span>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={8} isLoading emptyLabel="" />
                     ) : (blogs?.length || 0) > 0 ? (
-                        blogs
-                            .filter((blog) => {
-                                if (!statusFilter) return true;
-                                if (statusFilter === "published") return !!blog.publishedAt;
-                                if (statusFilter === "draft") return !blog.publishedAt;
-                                return true;
-                            })
-                            .map((blog) => (
+                        blogs.map((blog) => (
                             <TableRow key={blog.id} className="group hover:bg-muted/30 border-b border-border/50 transition-colors">
                                 <TableCell>
                                     <div className="w-12 h-10 rounded-lg overflow-hidden bg-muted/50 border border-border/40 flex items-center justify-center relative shrink-0">
@@ -143,11 +139,34 @@ export default function BlogsPage() {
                                             {blog?.title || "Untitled Blog Post"}
                                         </span>
                                         <span className="text-[12px] font-medium text-muted-foreground tracking-tight mt-0.5 max-w-[400px] truncate">
-                                            #{blog.id} — {blog.description ? blog.description.substring(0, 60) + '...' : 'No description'}
+                                            #{blog.id} — {blog.excerpt ? blog.excerpt : blog.description ? blog.description.substring(0, 60) + '...' : 'No description'}
                                         </span>
                                     </div>
                                 </TableCell>
+                                <TableCell className="text-muted-foreground text-[13px]">
+                                    {blog.category ? (
+                                        <Badge variant="outline" className="border-border/60">
+                                            {blog.category.name}
+                                        </Badge>
+                                    ) : (
+                                        "Uncategorized"
+                                    )}
+                                </TableCell>
                                 <TableCell className="text-muted-foreground text-[13px] font-medium">{blog?.slug || "N/A"}</TableCell>
+                                <TableCell className="text-[12px] text-muted-foreground">
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {blog.meta_title && (
+                                            <Badge variant="outline" className="border-border/60">Title</Badge>
+                                        )}
+                                        {blog.meta_description && (
+                                            <Badge variant="outline" className="border-border/60">Description</Badge>
+                                        )}
+                                        {blog.keywords && (
+                                            <Badge variant="outline" className="border-border/60">Keywords</Badge>
+                                        )}
+                                        {!blog.meta_title && !blog.meta_description && !blog.keywords && "Basic"}
+                                    </div>
+                                </TableCell>
                                 <TableCell>
                                     {blog?.publishedAt ? (
                                         <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20 shadow-none text-[10px] font-bold uppercase py-0.5 px-2.5">
@@ -190,7 +209,7 @@ export default function BlogsPage() {
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={6} className="h-48 text-center">
+                            <TableCell colSpan={8} className="h-48 text-center">
                                 <div className="flex flex-col items-center justify-center text-muted-foreground gap-1">
                                     <FileText className="h-8 w-8 text-muted-foreground/30 mb-2" />
                                     <p className="font-semibold text-foreground">No blogs found</p>
