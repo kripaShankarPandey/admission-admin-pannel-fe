@@ -6,7 +6,12 @@ export interface CourseCategorySpecialization {
   specialization: string;
   subCourseCategoryId?: number;
   subCourseCategory?: {
+    id: number;
     sub_course_category_name: string;
+    courseCategoryId?: number;
+    courseCategory?: {
+      courses_category_name: string;
+    };
   };
   _count?: {
     colleges: number;

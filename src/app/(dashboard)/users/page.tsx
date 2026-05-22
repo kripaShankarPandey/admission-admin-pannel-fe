@@ -11,11 +11,11 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShieldCheck, User as UserIcon, MoreHorizontal } from "lucide-react";
+import { Trash2, ShieldCheck, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -76,9 +76,10 @@ export default function UsersPage() {
     return (
         <ListingLayout
             title="User"
+            description="Manage admin access, review account status, and promote or demote dashboard users."
             count={filteredUsers.length}
             onSearchChange={setSearch}
-            onCreateClick={() => toast.info("User creation is handled via signup.")}
+            searchPlaceholder="Search by username or email..."
         >
             <Table>
                 <TableHeader className="bg-card">
@@ -93,14 +94,7 @@ export default function UsersPage() {
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableRow>
-                            <TableCell colSpan={6} className="text-center py-10">
-                                <div className="flex items-center justify-center gap-2">
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                    <span className="text-muted-foreground">Loading...</span>
-                                </div>
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={6} isLoading emptyLabel="" />
                     ) : (filteredUsers?.length || 0) > 0 ? (
                         filteredUsers.map((user) => (
                             <TableRow key={user.id} className="group hover:bg-muted/50 border-b border-border/50">
@@ -128,14 +122,10 @@ export default function UsersPage() {
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
-                                                </Button>
+                                            <DropdownMenuTrigger
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg opacity-0 transition-opacity hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none group-hover:opacity-100 aria-expanded:bg-muted aria-expanded:text-foreground"
+                                            >
+                                                <ShieldCheck className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="border-border">
                                                 <DropdownMenuItem
@@ -167,11 +157,7 @@ export default function UsersPage() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow>
-                            <TableCell colSpan={7} className="text-center py-10 text-muted-foreground font-medium">
-                                No users found.
-                            </TableCell>
-                        </TableRow>
+                        <TableStateRow colSpan={7} emptyLabel="No users found." />
                     )}
                 </TableBody>
             </Table>

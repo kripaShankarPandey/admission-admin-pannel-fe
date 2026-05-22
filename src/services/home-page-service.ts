@@ -1,10 +1,38 @@
 import { apiClient } from "@/lib/api-client";
 
+export interface HomeRunningTextItem {
+  text: string;
+  featured: boolean;
+}
+
+export interface HomeBannerItem {
+  title: string;
+  image: string;
+}
+
+export interface HomeSelectionItem {
+  id: number;
+  name: string;
+}
+
+export interface HomeReviewItem {
+  review: string;
+  name: string;
+  position: string;
+}
+
 export interface HomePageSettings {
   id: number;
-  banner: any[] | null;
-  runningText: any[] | null;
-  seoData: any | null;
+  banner: HomeBannerItem[] | null;
+  runningText: HomeRunningTextItem[] | null;
+  categories?: HomeSelectionItem[] | null;
+  popularCourses?: HomeSelectionItem[] | null;
+  topColleges?: HomeSelectionItem[] | null;
+  reviews?: HomeReviewItem[] | null;
+  seoData?: {
+    metaTitle?: string;
+    metaDescription?: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

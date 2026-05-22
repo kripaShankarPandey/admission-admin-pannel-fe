@@ -134,7 +134,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
 
     const onSubmit = async (data: any) => {
         if (!data.name || !data.courseCategoryId) {
-            toast.error("Name and Category are required");
+            toast.error("Name and Discipline are required");
             return;
         }
 
@@ -174,7 +174,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
             } else {
                 await subCourseCategoryService.create(payload);
                 toast.success("Course created successfully");
-                router.push("/sub-categories"); // only push back if created
+                router.push("/courses"); // only push back if created
             }
         } catch (error) {
             console.error(error);
@@ -187,7 +187,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
     return (
         <div className="w-full max-w-5xl mx-auto space-y-6 pb-20">
             <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" onClick={() => router.push("/sub-categories")} className="h-8 w-8">
+                <Button variant="outline" size="icon" onClick={() => router.push("/courses")} className="h-8 w-8">
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
@@ -258,10 +258,10 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                             )} />
                             <FormField control={control} name="courseCategoryId" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Parent Category *</FormLabel>
+                                    <FormLabel>Discipline *</FormLabel>
                                     <Select onValueChange={field.onChange} value={field.value}>
                                         <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select Parent Category" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder="Select Discipline" /></SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
                                             {allCategories.map(c => (
@@ -571,7 +571,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     {/* Fixed Action Bottom Bar */}
                     <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border z-10 lg:pl-64">
                         <div className="w-full max-w-5xl mx-auto flex justify-end gap-3 pr-4">
-                            <Button type="button" variant="outline" onClick={() => router.push("/sub-categories")} disabled={isLoading}>
+                            <Button type="button" variant="outline" onClick={() => router.push("/courses")} disabled={isLoading}>
                                 Cancel
                             </Button>
                             <Button type="submit" disabled={isLoading} className="font-semibold px-8">

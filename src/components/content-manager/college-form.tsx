@@ -1,723 +1,2761 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import {
+  type Control,
+  useFieldArray,
+  useForm,
+  type UseFormRegister,
+  useWatch,
+  type FieldErrors,
+} from "react-hook-form";
 import { College } from "@/services/college-service";
-import { getAllCitiesWithState } from "@/data/cityData";
 import { allCoursesData } from "@/data/allCoursesData";
+import { ClinicalExcilenceLab } from "@/data/ClinicalExcilenceLab";
+import { cityService, type City } from "@/services/city-service";
+import {
+  reachUsService,
+  type ReachUsLocation,
+} from "@/services/reach-us-service";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-    Plus,
-    Trash2,
-    GripVertical,
-    Upload,
-    ImageIcon,
-    Star,
-    Building2,
-    GraduationCap,
-    FileText,
-    Globe,
-    Award,
-    Users,
-    ClipboardList,
-    History,
-    DollarSign,
-    BarChart3,
-    BookOpen,
-    X,
-} from "lucide-react";
 import { toast } from "sonner";
+import {
+  BookOpen,
+  Building2,
+  ClipboardList,
+  GraduationCap,
+  Hospital,
+  ImageIcon,
+  MapPin,
+  Microscope,
+  Plus,
+  Save,
+  Search,
+  Star,
+  Trash2,
+  Upload,
+  Volume2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ─── Helpers ────────────────────────────────────────────
 function slugify(text: string) {
-    return text
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function readString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return value.toString();
+  }
+  return "";
+}
+
+function readBoolean(...values: unknown[]): boolean {
+  for (const value of values) {
+    if (typeof value === "boolean") return value;
+    if (value === "true") return true;
+    if (value === "false") return false;
+  }
+  return false;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
+type CourseLevel =
+  | "UG"
+  | "PG"
+  | "Diploma"
+  | "Doctorate"
+  | "Certificate"
+  | "Other";
+
+interface CourseRow {
+  course: string;
+  duration: string;
+  course_level: CourseLevel | "";
+  total_intake: CourseValueEntry[];
+  intake_total: CourseValueEntry[];
+  fee: CourseValueEntry[];
+  pg_seats: CourseValueEntry[];
+  ss_seats: CourseValueEntry[];
+}
+
+interface CourseValueEntry {
+  value: string;
+}
+
+interface RoundCutoff {
+  r1: string;
+  r2: string;
+  r3: string;
+  r4: string;
+  r5: string;
+  r_final: string;
+}
+
+interface GovtStateCutoff {
+  urop: string;
+  ews: string;
+  obc: string;
+  sc: string;
+  st: string;
+  ur: string;
+}
+
+interface GovtAiqCutoff {
+  ews: string;
+  obc: string;
+  sc: string;
+  st: string;
+  ur: string;
+}
+
+interface ClinicalExcilenceLabRow {
+  course: string;
+  department: string;
+  labs: string[];
+}
+
+interface ClinicalExcilenceLabDepartment {
+  department: string;
+  labs: string[];
+}
+
+interface ClinicalExcilenceLabCourseOption {
+  course: string;
+  departments: ClinicalExcilenceLabDepartment[];
+}
+
+interface CollegeFormValues {
+  college_name: string;
+  university_name: string;
+  slug: string;
+  approval: string;
+  status: string;
+  state: string;
+  city: string;
+  mgmt_type: string;
+  establish_year: string;
+  campus_area: string;
+  accreditation: string;
+  nirf_rank: string;
+  naac: string;
+  nba: string;
+  featured: boolean;
+  priority: string;
+  college_image: string;
+  gallery: string[];
+  campus_tour_icon: string;
+  podcast: string;
+  meta_title: string;
+  meta_description: string;
+  keywords: string;
+  action_url: string;
+  discipline: string;
+  overview: string;
+  facilities_enabled: boolean;
+  hospital_overview_enabled: boolean;
+  admission_counselling: string[];
+  eligibility: string;
+  exam_accepted: string;
+  internship: string;
+  exchange_program: string;
+  sponsorship: string;
+  stipend_year_1: string;
+  stipend_year_2: string;
+  stipend_year_3: string;
+  hospital_bed: string;
+  airport: string;
+  railway_station: string;
+  bus_stand: string;
+  no_of_ot: string;
+  total_bed: string;
+  ss_bed: string;
+  ms_bed: string;
+  opd_running: string;
+  average_ot: string;
+  clinical_rotation: string;
+  medical_camping: string;
+  clinical_excilence_lab: ClinicalExcilenceLabRow[];
+  courses: CourseRow[];
+  cutoff_state_enabled: boolean;
+  cutoff_all_india_enabled: boolean;
+  cutoff_minority_enabled: boolean;
+  govt_state_cutoff_enabled: boolean;
+  government_college_aiq_cutoff_enabled: boolean;
+  cutoff_state: RoundCutoff;
+  cutoff_all_india: RoundCutoff;
+  cutoff_minority: RoundCutoff;
+  govt_state_cutoff: GovtStateCutoff;
+  government_college_aiq_cutoff: GovtAiqCutoff;
 }
 
 interface CollegeFormProps {
-    initialData?: College;
-    onSave: (data: any) => Promise<void>;
+  initialData?: College;
+  onSave: (data: Partial<College> & Record<string, unknown>) => Promise<void>;
 }
 
-// ─── Section Header ─────────────────────────────────────
-function SectionHeader({ icon: Icon, title, subtitle, count }: {
-    icon: any; title: string; subtitle?: string; count?: number;
+interface CityOption {
+  id: number;
+  city: string;
+  state: string;
+}
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  subtitle,
+  count,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  count?: number;
 }) {
-    return (
-        <div className="flex items-center gap-3 pb-4 border-b border-border/40">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0">
-                <Icon className="h-4.5 w-4.5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground tracking-tight flex items-center gap-2">
-                    {title}
-                    {count !== undefined && (
-                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md">{count}</span>
-                    )}
-                </h3>
-                {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
-            </div>
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background">
+          <Icon className="h-4.5 w-4.5 text-primary" />
         </div>
-    );
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold tracking-tight text-foreground">
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      {count !== undefined && (
+        <span className="w-fit rounded-md border border-border/60 bg-background px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+          {count}
+        </span>
+      )}
+    </div>
+  );
 }
 
-// ─── Repeatable Row ─────────────────────────────────────
-function RepeatableRow({ children, onRemove, index }: { children: React.ReactNode; onRemove: () => void; index: number }) {
-    return (
-        <div className="group relative flex items-start gap-2 p-3 rounded-lg border border-border/40 bg-muted/20 hover:border-border/60 transition-all">
-            <span className="text-[10px] font-bold text-muted-foreground/40 pt-3 w-5 text-center shrink-0">{index + 1}</span>
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                {children}
-            </div>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-destructive/50 hover:text-destructive hover:bg-destructive/10 mt-1"
-                onClick={onRemove}
-            >
-                <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-        </div>
-    );
+function FL({
+  children,
+  required,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <Label className="text-xs font-semibold text-muted-foreground">
+      {children}
+      {required && <span className="text-destructive ml-0.5">*</span>}
+    </Label>
+  );
 }
 
-// ─── Add Row Button ─────────────────────────────────────
-function AddRowButton({ onClick, label = "Add Entry" }: { onClick: () => void; label?: string }) {
-    return (
-        <button
-            type="button"
-            className="w-full h-9 border border-dashed border-border/50 rounded-lg text-xs text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
-            onClick={onClick}
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+
+  return <p className="text-xs font-medium text-destructive">{message}</p>;
+}
+
+function AddRowButton({
+  onClick,
+  label,
+}: {
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-background text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary"
+    >
+      <Plus className="h-4 w-4" />
+      {label}
+    </button>
+  );
+}
+
+function RepeatableRow({
+  children,
+  onRemove,
+  index,
+}: {
+  children: React.ReactNode;
+  onRemove: () => void;
+  index: number;
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-background p-4 shadow-xs transition-colors hover:border-border">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/40 pb-3">
+        <span className="rounded-md bg-muted px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+          Row {index + 1}
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-destructive/60 hover:bg-destructive/10 hover:text-destructive"
+          onClick={onRemove}
         >
-            <Plus className="h-3.5 w-3.5" /> {label}
-        </button>
-    );
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {children}
+      </div>
+    </div>
+  );
 }
 
-// ─── Field Label ────────────────────────────────────────
-function FL({ children, required }: { children: React.ReactNode; required?: boolean }) {
-    return (
-        <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-            {children}{required && <span className="text-destructive ml-0.5">*</span>}
-        </Label>
-    );
+function CourseSeatDetailsGroup({
+  control,
+  register,
+  courseIndex,
+}: {
+  control: Control<CollegeFormValues>;
+  register: UseFormRegister<CollegeFormValues>;
+  courseIndex: number;
+}) {
+  const intakeFields = useFieldArray({
+    control,
+    name: `courses.${courseIndex}.intake_total`,
+  });
+  const totalIntakeFields = useFieldArray({
+    control,
+    name: `courses.${courseIndex}.total_intake`,
+  });
+  const feeFields = useFieldArray({
+    control,
+    name: `courses.${courseIndex}.fee`,
+  });
+  const intakeSeatFields = useFieldArray({
+    control,
+    name: `courses.${courseIndex}.pg_seats`,
+  });
+  const ssSeatFields = useFieldArray({
+    control,
+    name: `courses.${courseIndex}.ss_seats`,
+  });
+
+  const intakeValues = useWatch({
+    control,
+    name: `courses.${courseIndex}.intake_total`,
+  });
+  const rowCount = Math.max(
+    totalIntakeFields.fields.length,
+    intakeFields.fields.length,
+    feeFields.fields.length,
+    intakeSeatFields.fields.length,
+    ssSeatFields.fields.length,
+    1,
+  );
+
+  return (
+    <div className="space-y-2 xl:col-span-3">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr_1fr_1fr_auto] gap-2 items-start">
+        <FL>Total Intake</FL>
+        <FL>Intake Type</FL>
+        <FL>Fee Str</FL>
+        <FL>No of PG Seat</FL>
+        <FL>No of SS Seat</FL>
+        <span />
+      </div>
+      <div className="space-y-2">
+        {Array.from({ length: rowCount }).map((_, nestedIndex) => (
+          <div
+            key={`course-${courseIndex}-detail-${nestedIndex}`}
+            className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr_1fr_1fr_auto] gap-2 items-center"
+          >
+            <div>
+              <Input
+                {...register(
+                  `courses.${courseIndex}.total_intake.${nestedIndex}.value`,
+                )}
+                placeholder="150"
+                className="h-8 bg-card border-border/40 text-sm"
+              />
+            </div>
+            <div>
+              <Select
+                value={intakeValues?.[nestedIndex]?.value ?? ""}
+                onValueChange={(value) =>
+                  intakeFields.update(
+                    nestedIndex,
+                    createCourseValueEntry(value),
+                  )
+                }
+              >
+                <SelectTrigger className="h-8 bg-card border-border/40 text-sm">
+                  <SelectValue placeholder="Select intake type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INTAKE_TOTAL_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                INR
+              </span>
+              <Input
+                {...register(`courses.${courseIndex}.fee.${nestedIndex}.value`)}
+                placeholder="25000"
+                className="h-8 bg-card border-border/40 text-sm pl-10"
+              />
+            </div>
+            <div>
+              <Input
+                {...register(
+                  `courses.${courseIndex}.pg_seats.${nestedIndex}.value`,
+                )}
+                placeholder="45"
+                className="h-8 bg-card border-border/40 text-sm"
+              />
+            </div>
+            <div>
+              <Input
+                {...register(
+                  `courses.${courseIndex}.ss_seats.${nestedIndex}.value`,
+                )}
+                placeholder="12"
+                className="h-8 bg-card border-border/40 text-sm"
+              />
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                if (rowCount === 1) {
+                  totalIntakeFields.update(0, createCourseValueEntry());
+                  intakeFields.update(0, createCourseValueEntry());
+                  feeFields.update(0, createCourseValueEntry());
+                  intakeSeatFields.update(0, createCourseValueEntry());
+                  ssSeatFields.update(0, createCourseValueEntry());
+                  return;
+                }
+
+                totalIntakeFields.remove(nestedIndex);
+                intakeFields.remove(nestedIndex);
+                feeFields.remove(nestedIndex);
+                intakeSeatFields.remove(nestedIndex);
+                ssSeatFields.remove(nestedIndex);
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ))}
+        <AddRowButton
+          onClick={() => {
+            totalIntakeFields.append(createCourseValueEntry());
+            intakeFields.append(createCourseValueEntry());
+            intakeSeatFields.append(createCourseValueEntry());
+            feeFields.append(createCourseValueEntry());
+            ssSeatFields.append(createCourseValueEntry());
+          }}
+          label="Add Intake Row"
+        />
+      </div>
+    </div>
+  );
 }
 
-// ═══════════════════════════════════════════════════════
-// MAIN FORM
-// ═══════════════════════════════════════════════════════
+function defaultRoundCutoff(value?: Partial<RoundCutoff>): RoundCutoff {
+  return {
+    r1: readString(value?.r1),
+    r2: readString(value?.r2),
+    r3: readString(value?.r3),
+    r4: readString(value?.r4),
+    r5: readString(value?.r5),
+    r_final: readString(value?.r_final),
+  };
+}
+
+function defaultGovtStateCutoff(
+  value?: Partial<GovtStateCutoff>,
+): GovtStateCutoff {
+  return {
+    urop: readString(value?.urop),
+    ews: readString(value?.ews),
+    obc: readString(value?.obc),
+    sc: readString(value?.sc),
+    st: readString(value?.st),
+    ur: readString(value?.ur),
+  };
+}
+
+function defaultGovtAiqCutoff(value?: Partial<GovtAiqCutoff>): GovtAiqCutoff {
+  return {
+    ews: readString(value?.ews),
+    obc: readString(value?.obc),
+    sc: readString(value?.sc),
+    st: readString(value?.st),
+    ur: readString(value?.ur),
+  };
+}
+
+function createCourseValueEntry(value = ""): CourseValueEntry {
+  return { value };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function normalizeRows<T extends object>(
+  value: unknown,
+  emptyRow: T,
+  mapper: (record: Record<string, unknown>) => T,
+): T[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [emptyRow];
+  }
+
+  const rows = value.map((row) => mapper(asRecord(row)));
+  return rows.length > 0 ? rows : [emptyRow];
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => readString(item).trim())
+    .filter((item) => item.length > 0);
+}
+
+function readSelectionList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return readStringArray(value);
+  }
+
+  const text = readString(value).trim();
+  if (!text) return [];
+
+  if (text.startsWith("[") && text.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(text);
+      return readStringArray(parsed);
+    } catch {
+      return [text];
+    }
+  }
+
+  if (text.includes(";")) {
+    return text
+      .split(";")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  return [text];
+}
+
+function defaultClinicalExcilenceLabRow(): ClinicalExcilenceLabRow {
+  return { course: "", department: "", labs: [] };
+}
+
+function normalizeClinicalExcilenceLabRows(
+  value: unknown,
+): ClinicalExcilenceLabRow[] {
+  return normalizeRows(value, defaultClinicalExcilenceLabRow(), (row) => ({
+    course: readString(row.course),
+    department: readString(row.department, row.dipartment),
+    labs: readStringArray(row.labs),
+  }));
+}
+
+function pruneClinicalExcilenceLabRows(
+  rows: ClinicalExcilenceLabRow[],
+): ClinicalExcilenceLabRow[] {
+  return rows.filter(
+    (row) =>
+      row.course.trim().length > 0 ||
+      row.department.trim().length > 0 ||
+      row.labs.length > 0,
+  );
+}
+
+function normalizeCourseValueEntries(value: unknown): CourseValueEntry[] {
+  if (Array.isArray(value)) {
+    const normalizedEntries = value
+      .map((entry) => {
+        if (typeof entry === "string" || typeof entry === "number") {
+          return createCourseValueEntry(readString(entry));
+        }
+
+        if (entry && typeof entry === "object") {
+          return createCourseValueEntry(
+            readString((entry as { value?: unknown }).value),
+          );
+        }
+
+        return null;
+      })
+      .filter((entry): entry is CourseValueEntry => entry !== null);
+
+    if (normalizedEntries.length > 0) {
+      return normalizedEntries;
+    }
+  }
+
+  return [createCourseValueEntry(readString(value))];
+}
+
+function normalizeCourseRows(value: unknown): CourseRow[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    return [
+      {
+        course: "",
+        duration: "",
+        course_level: "",
+        total_intake: [createCourseValueEntry()],
+        intake_total: [createCourseValueEntry()],
+        fee: [createCourseValueEntry()],
+        pg_seats: [createCourseValueEntry()],
+        ss_seats: [createCourseValueEntry()],
+      },
+    ];
+  }
+
+  return value.map((row) => {
+    const record = row && typeof row === "object" ? row : {};
+    const intakeEntries = normalizeCourseValueEntries(
+      (record as { intake_total?: unknown }).intake_total,
+    );
+    const totalIntakeEntries = normalizeCourseValueEntries(
+      (record as { total_intake?: unknown }).total_intake,
+    );
+    const feeEntries = normalizeCourseValueEntries(
+      (record as { fee?: unknown }).fee,
+    );
+    const pgSeatEntries = normalizeCourseValueEntries(
+      (record as { pg_seats?: unknown }).pg_seats,
+    );
+    const ssSeatEntries = normalizeCourseValueEntries(
+      (record as { ss_seats?: unknown }).ss_seats,
+    );
+    const entryCount = Math.max(
+      totalIntakeEntries.length,
+      intakeEntries.length,
+      feeEntries.length,
+      pgSeatEntries.length,
+      ssSeatEntries.length,
+      1,
+    );
+
+    return {
+      course: readString((record as { course?: unknown }).course),
+      duration: readString((record as { duration?: unknown }).duration),
+      course_level: readString(
+        (record as { course_level?: unknown }).course_level,
+      ) as CourseLevel | "",
+      total_intake: Array.from({ length: entryCount }, (_, index) => {
+        return totalIntakeEntries[index] ?? createCourseValueEntry();
+      }),
+      intake_total: Array.from({ length: entryCount }, (_, index) => {
+        return intakeEntries[index] ?? createCourseValueEntry();
+      }),
+      fee: Array.from({ length: entryCount }, (_, index) => {
+        return feeEntries[index] ?? createCourseValueEntry();
+      }),
+      pg_seats: Array.from({ length: entryCount }, (_, index) => {
+        return pgSeatEntries[index] ?? createCourseValueEntry();
+      }),
+      ss_seats: Array.from({ length: entryCount }, (_, index) => {
+        return ssSeatEntries[index] ?? createCourseValueEntry();
+      }),
+    };
+  });
+}
+
+function roundCutoffFields(
+  prefix: "cutoff_state" | "cutoff_all_india" | "cutoff_minority",
+) {
+  return [
+    { label: "R-1", name: `${prefix}.r1` as const },
+    { label: "R-2", name: `${prefix}.r2` as const },
+    { label: "R-3", name: `${prefix}.r3` as const },
+    { label: "R-4", name: `${prefix}.r4` as const },
+    { label: "R-5", name: `${prefix}.r5` as const },
+    { label: "R-Final", name: `${prefix}.r_final` as const },
+  ];
+}
+
+const NAAC_OPTIONS = [
+  "NAAC A++",
+  "NAAC A+",
+  "NAAC A",
+  "NAAC B++",
+  "NAAC B+",
+  "NAAC B",
+] as const;
+
+const NBA_OPTIONS = ["Yes", "No"] as const;
+
+const ADMISSION_COUNSELLING_OPTIONS = [
+  "BY Medical Counselling Committee (MCC)",
+  "BY The Joint Seat Allocation Authority (JoSAA)",
+  "BY Central Seat Allocation Board (CSAB)",
+  "BY Bihar Combined Entrance Competitive Examination Board (BCECEB)",
+  "BY Director General Medical Education and Training, UP",
+  "BY Karnataka Examinations Authority, BANGLORE",
+  "BY Jharkhand Combined Entrance Competitive Examination Board, RANCHI",
+  "BY West Bengal Joint Entrance Examinations Board (WBJEEB), KOLKATA",
+  "BY West Bengal Medical Counselling Committee (WBMCC), KOLKATA",
+  "BY West Bengal Medical Counselling Committee (WBMCC)",
+  "BY Direct Admission of Students Abroad (DASA)",
+  "BY Veterinary Council of India (VCI)",
+  "BY Ayush Admissions Central Counseling Committee (AACCC)",
+  "BY UP AYUSH COUNCIL",
+  "By University/institute",
+] as const;
+
+const EXAM_ACCEPTED_OPTIONS = [
+  "JEE Mains",
+  "Jee Advanced",
+  "WBJEE",
+  "COMDEK",
+  "MHTCET",
+  "OJEE",
+  "ICAR",
+  "IMU",
+  "NCHMCT",
+  "CLAT",
+  "CAT",
+  "MAT",
+  "XAT",
+  "GMAT",
+  "CMAT",
+  "NEET UG",
+  "NEET PG",
+  "NIFT",
+  "CUET",
+  "VITJEE",
+  "BITSAT",
+] as const;
+
+const INTAKE_TOTAL_OPTIONS = [
+  "TOTAL",
+  "NRI",
+  "MERIT",
+  "MAGEMENT",
+  "Semi govt",
+  "Goverment",
+  "AIQ",
+] as const;
+
+const YES_NO_OPTIONS = ["Yes", "No"] as const;
+
+const clinicalExcilenceLabOptions =
+  ClinicalExcilenceLab as ClinicalExcilenceLabCourseOption[];
+
 export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const [imagePreview, setImagePreview] = useState<string>(initialData?.college_image || "");
+  const [availableCities, setAvailableCities] = useState<CityOption[]>([]);
+  const [airportOptions, setAirportOptions] = useState<ReachUsLocation[]>([]);
+  const [isLoadingAirports, setIsLoadingAirports] = useState(false);
 
-    // Local city data — create unique entries
-    const cities = useMemo(() => {
-        const all = getAllCitiesWithState();
-        // Make unique values by combining city + state
-        return all.map((c: any, i: number) => ({
-            label: `${c.city} — ${c.state}`,
-            value: `${c.city}|${c.state}|${i}`, // guaranteed unique
-            city: c.city,
-            state: c.state,
-        }));
-    }, []);
+  const disciplineOptions = useMemo(
+    () =>
+      allCoursesData.map((item: { discipline: string }) => ({
+        label: item.discipline,
+        value: item.discipline,
+      })),
+    [],
+  );
+  const defaultValues: CollegeFormValues = {
+    college_name: readString(initialData?.college_name),
+    university_name: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.university_name,
+      initialData?.affiliated_with,
+    ),
+    slug: readString(initialData?.slug),
+    approval: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.approval,
+    ),
+    status: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.status,
+    ),
+    state: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.state,
+      initialData?.city?.state,
+    ),
+    city: readString(
+      initialData?.city?.id,
+      initialData?.cityId,
+      (initialData as Partial<College> & Record<string, unknown>)?.city_name,
+      initialData?.city?.city,
+    ),
+    mgmt_type: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.mgmt_type,
+      initialData?.college_type,
+    ),
+    establish_year: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.establish_year,
+      initialData?.established_year,
+    ),
+    campus_area: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.campus_area,
+    ),
+    accreditation: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.accreditation,
+    ),
+    nirf_rank: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.nirf_rank,
+      initialData?.NIRF_rank,
+    ),
+    naac: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.naac,
+    ),
+    nba: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.nba,
+    ),
+    featured: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)?.featured,
+      initialData?.isFeatured,
+    ),
+    priority: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.priority,
+      1,
+    ),
+    college_image: readString(initialData?.college_image),
+    gallery: readStringArray(initialData?.gallery),
+    campus_tour_icon: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.campus_tour_icon,
+    ),
+    podcast: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.podcast,
+    ),
+    meta_title: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.meta_title,
+    ),
+    meta_description: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.meta_description,
+    ),
+    keywords: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.keywords,
+    ),
+    action_url: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.action_url,
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.apply_now_url,
+    ),
+    discipline: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.discipline,
+    ),
+    overview: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.overview,
+      initialData?.college_description,
+    ),
+    facilities_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.facilities_enabled,
+      true,
+    ),
+    hospital_overview_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.hospital_overview_enabled,
+      true,
+    ),
+    admission_counselling: readSelectionList(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.admission_counselling,
+    ),
+    eligibility: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.eligibility,
+    ),
+    exam_accepted: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.exam_accepted,
+    ),
+    internship: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.internship,
+    ),
+    exchange_program: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.exchange_program,
+    ),
+    sponsorship: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.sponsorship,
+    ),
+    stipend_year_1: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.stipend_year_1,
+    ),
+    stipend_year_2: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.stipend_year_2,
+    ),
+    stipend_year_3: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.stipend_year_3,
+    ),
+    hospital_bed: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.hospital_bed,
+    ),
+    airport: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.airport,
+    ),
+    railway_station: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.railway_station,
+    ),
+    bus_stand: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.bus_stand,
+    ),
+    no_of_ot: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.no_of_ot,
+    ),
+    total_bed: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.total_bed,
+    ),
+    ss_bed: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.ss_bed,
+    ),
+    ms_bed: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.ms_bed,
+    ),
+    opd_running: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.opd_running,
+    ),
+    average_ot: readString(
+      (initialData as Partial<College> & Record<string, unknown>)?.average_ot,
+    ),
+    clinical_rotation: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.clinical_rotation,
+    ),
+    medical_camping: readString(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.medical_camping,
+    ),
+    clinical_excilence_lab: normalizeClinicalExcilenceLabRows(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.clinical_excilence_lab,
+    ),
+    courses: normalizeCourseRows(
+      (initialData as Partial<College> & Record<string, unknown>)?.courses,
+    ),
+    cutoff_state_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_state_enabled,
+      true,
+    ),
+    cutoff_all_india_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_all_india_enabled,
+      true,
+    ),
+    cutoff_minority_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_minority_enabled,
+      true,
+    ),
+    govt_state_cutoff_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.govt_state_cutoff_enabled,
+      true,
+    ),
+    government_college_aiq_cutoff_enabled: readBoolean(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.government_college_aiq_cutoff_enabled,
+      true,
+    ),
+    cutoff_state: defaultRoundCutoff(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_state as Partial<RoundCutoff>,
+    ),
+    cutoff_all_india: defaultRoundCutoff(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_all_india as Partial<RoundCutoff>,
+    ),
+    cutoff_minority: defaultRoundCutoff(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.cutoff_minority as Partial<RoundCutoff>,
+    ),
+    govt_state_cutoff: defaultGovtStateCutoff(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.govt_state_cutoff as Partial<GovtStateCutoff>,
+    ),
+    government_college_aiq_cutoff: defaultGovtAiqCutoff(
+      (initialData as Partial<College> & Record<string, unknown>)
+        ?.government_college_aiq_cutoff as Partial<GovtAiqCutoff>,
+    ),
+  };
 
-    // Discipline hierarchy
-    const disciplines = useMemo(() =>
-        allCoursesData.map((d: any, i: number) => ({
-            id: i + 1,
-            name: d.discipline,
-            courses: d.courses,
-        })), []);
+  const form = useForm<CollegeFormValues>({ defaultValues });
+  const watchedCourses = useWatch({ control: form.control, name: "courses" });
+  const collegeName = useWatch({ control: form.control, name: "college_name" });
+  const featuredImageValue = useWatch({
+    control: form.control,
+    name: "college_image",
+  });
+  const galleryValue = useWatch({
+    control: form.control,
+    name: "gallery",
+  });
+  const approvalValue = useWatch({ control: form.control, name: "approval" });
+  const statusValue = useWatch({ control: form.control, name: "status" });
+  const managementTypeValue = useWatch({
+    control: form.control,
+    name: "mgmt_type",
+  });
+  const naacValue = useWatch({ control: form.control, name: "naac" });
+  const nbaValue = useWatch({ control: form.control, name: "nba" });
+  const admissionCounsellingValue = useWatch({
+    control: form.control,
+    name: "admission_counselling",
+  });
+  const examAcceptedValue = useWatch({
+    control: form.control,
+    name: "exam_accepted",
+  });
+  const disciplineValue = useWatch({
+    control: form.control,
+    name: "discipline",
+  });
+  const internshipValue = useWatch({
+    control: form.control,
+    name: "internship",
+  });
+  const sponsorshipValue = useWatch({
+    control: form.control,
+    name: "sponsorship",
+  });
+  const clinicalRotationValue = useWatch({
+    control: form.control,
+    name: "clinical_rotation",
+  });
+  const medicalCampingValue = useWatch({
+    control: form.control,
+    name: "medical_camping",
+  });
+  const cutoffStateEnabledValue = useWatch({
+    control: form.control,
+    name: "cutoff_state_enabled",
+  });
+  const cutoffAllIndiaEnabledValue = useWatch({
+    control: form.control,
+    name: "cutoff_all_india_enabled",
+  });
+  const cutoffMinorityEnabledValue = useWatch({
+    control: form.control,
+    name: "cutoff_minority_enabled",
+  });
+  const govtStateCutoffEnabledValue = useWatch({
+    control: form.control,
+    name: "govt_state_cutoff_enabled",
+  });
+  const governmentCollegeAiqCutoffEnabledValue = useWatch({
+    control: form.control,
+    name: "government_college_aiq_cutoff_enabled",
+  });
+  const selectedStateValue = useWatch({ control: form.control, name: "state" });
+  const selectedCityValue = useWatch({ control: form.control, name: "city" });
+  const selectedAirportValue = useWatch({
+    control: form.control,
+    name: "airport",
+  });
+  const watchedClinicalExcilenceLabs = useWatch({
+    control: form.control,
+    name: "clinical_excilence_lab",
+  });
 
-    // Selected specializations state (managed outside react-hook-form for simplicity)
-    const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
+  const courses = useFieldArray({
+    control: form.control,
+    name: "courses",
+  });
+  const clinicalExcilenceLabFields = useFieldArray({
+    control: form.control,
+    name: "clinical_excilence_lab",
+  });
 
-    const form = useForm({
-        defaultValues: {
-            college_name: initialData?.college_name || "",
-            slug: initialData?.slug || "",
-            NIRF_rank: initialData?.NIRF_rank || "",
-            college_type: initialData?.college_type || "",
-            isFeatured: initialData?.isFeatured || false,
-            priority: (initialData as any)?.priority || 1,
-            college_image: initialData?.college_image || "",
-            college_rating: initialData?.college_rating || 4,
-            affiliated_with: initialData?.affiliated_with || "",
-            cityId: initialData?.cityId?.toString() || "",
-            established_year: initialData?.established_year || "",
-            college_description: initialData?.college_description || "",
-            apply_now_url: (initialData as any)?.apply_now_url || "",
-            download_brochure_url: (initialData as any)?.download_brochure_url || "",
-            selectedDiscipline: "",
-            selectedCourse: "",
+  const handleFeaturedImageChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
 
-            // Repeatable JSON sections
-            home_four_list: Array.isArray(initialData?.home_four_list) ? initialData.home_four_list : [],
-            overview_fourlist: Array.isArray(initialData?.overview_fourlist) ? initialData.overview_fourlist : [],
-            college_timeline: Array.isArray(initialData?.college_timeline) ? initialData.college_timeline : [],
-            intake_details: Array.isArray(initialData?.intake_details) ? initialData.intake_details : [],
-            fee_structure: Array.isArray(initialData?.fee_structure) ? initialData.fee_structure : [],
-            ranking: Array.isArray(initialData?.ranking) ? initialData.ranking : [],
-            all_india_cutoff: Array.isArray(initialData?.all_india_cutoff) ? initialData.all_india_cutoff : [],
-            state_cutoff: Array.isArray(initialData?.state_cutoff) ? initialData.state_cutoff : [],
-            admission_process: Array.isArray(initialData?.admission_process) ? initialData.admission_process : [],
-        },
+    if (!file) return;
+
+    if (!isImageFile(file)) {
+      toast.error("Please select an image file only.");
+      return;
+    }
+
+    const image = await fileToDataUrl(file);
+    form.setValue("college_image", image, { shouldDirty: true });
+  };
+
+  const handleGalleryImagesChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    const invalidFile = files.find((file) => !isImageFile(file));
+    if (invalidFile) {
+      toast.error("Gallery allows image files only.");
+      return;
+    }
+
+    const images = await Promise.all(files.map((file) => fileToDataUrl(file)));
+    form.setValue("gallery", [...(galleryValue || []), ...images], {
+      shouldDirty: true,
     });
+  };
 
-    // Field arrays
-    const quickInfo = useFieldArray({ control: form.control, name: "home_four_list" });
-    const iconSection = useFieldArray({ control: form.control, name: "overview_fourlist" });
-    const timeline = useFieldArray({ control: form.control, name: "college_timeline" });
-    const intake = useFieldArray({ control: form.control, name: "intake_details" });
-    const fees = useFieldArray({ control: form.control, name: "fee_structure" });
-    const rankings = useFieldArray({ control: form.control, name: "ranking" });
-    const aiqCutoff = useFieldArray({ control: form.control, name: "all_india_cutoff" });
-    const stateCutoff = useFieldArray({ control: form.control, name: "state_cutoff" });
-    const admProcess = useFieldArray({ control: form.control, name: "admission_process" });
-
-    // Auto-slug
-    const collegeName = form.watch("college_name");
-    useEffect(() => {
-        if (!initialData) {
-            form.setValue("slug", slugify(collegeName));
-        }
-    }, [collegeName, form, initialData]);
-
-    // Cascading selects
-    const selectedDiscipline = form.watch("selectedDiscipline");
-    const selectedCourse = form.watch("selectedCourse");
-
-    const coursesForDiscipline = useMemo(() => {
-        if (!selectedDiscipline) return [];
-        const d = disciplines.find((d: any) => d.name === selectedDiscipline);
-        return d?.courses || [];
-    }, [selectedDiscipline, disciplines]);
-
-    const specsForCourse = useMemo(() => {
-        if (!selectedCourse) return [];
-        const c = coursesForDiscipline.find((c: any) => c.name === selectedCourse);
-        return c?.specializations || [];
-    }, [selectedCourse, coursesForDiscipline]);
-
-    useEffect(() => {
-        form.setValue("selectedCourse", "");
-    }, [selectedDiscipline, form]);
-
-    // Image upload
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("Image must be less than 5MB");
-            return;
-        }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64 = reader.result as string;
-            form.setValue("college_image", base64);
-            setImagePreview(base64);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    // Submit
-    const onSubmit = async (data: any) => {
-        const cityEntry = cities.find((c: any) => c.value === data.cityId);
-        const payload = {
-            ...data,
-            cityId: cityEntry ? cityEntry.city : data.cityId,
-            college_rating: parseFloat(data.college_rating) || 4,
-            priority: parseInt(data.priority) || 1,
-            selectedSpecializations: selectedSpecs,
-        };
-        delete payload.selectedDiscipline;
-        delete payload.selectedCourse;
-        await onSave(payload);
-    };
-
-    // ─── Input class helper ─────────────────────────────
-    const inputCls = "h-9 bg-background border-border/50 text-sm";
-    const cardCls = "border-border/40 shadow-none";
-
-    return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-
-            {/* ═══════════ BASIC INFO ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={Building2} title="Basic Information" subtitle="Core college identifiers" />
-                </CardHeader>
-                <CardContent className="p-5 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <FL required>College Name</FL>
-                            <Input {...form.register("college_name")} placeholder="Enter college name" className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Slug</FL>
-                            <Input {...form.register("slug")} placeholder="auto-generated" className={cn(inputCls, "bg-muted/30 text-muted-foreground")} readOnly />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="space-y-1.5">
-                            <FL>NIRF Rank</FL>
-                            <Input {...form.register("NIRF_rank")} placeholder="e.g. 5" className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL required>MGMT Type</FL>
-                            <Select onValueChange={(val) => form.setValue("college_type", val)} value={form.watch("college_type")}>
-                                <SelectTrigger className={inputCls}>
-                                    <SelectValue placeholder="Select" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Government">Government</SelectItem>
-                                    <SelectItem value="Private">Private</SelectItem>
-                                    <SelectItem value="Trust">Trust</SelectItem>
-                                    <SelectItem value="Society">Society</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Established Year</FL>
-                            <Input {...form.register("established_year")} placeholder="1990" className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Priority</FL>
-                            <Input type="number" min="1" {...form.register("priority")} className={inputCls} />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-1.5">
-                            <FL>College Rating</FL>
-                            <div className="relative">
-                                <Input type="number" min="1" max="5" step="0.1" {...form.register("college_rating")} className={cn(inputCls, "pr-8")} />
-                                <Star className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Affiliated With</FL>
-                            <Input {...form.register("affiliated_with")} placeholder="University name" className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>City / Location</FL>
-                            <Select onValueChange={(val) => form.setValue("cityId", val)} value={form.watch("cityId")}>
-                                <SelectTrigger className={inputCls}>
-                                    <SelectValue placeholder="Select city" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[250px]">
-                                    {cities.map((city: any) => (
-                                        <SelectItem key={city.value} value={city.value}>
-                                            {city.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="flex items-end gap-4">
-                        <div className="space-y-1.5 w-48">
-                            <FL>Featured</FL>
-                            <div className="flex border border-border/50 rounded-md overflow-hidden h-9">
-                                <button type="button" onClick={() => form.setValue("isFeatured", false)}
-                                    className={cn("flex-1 text-[10px] font-bold uppercase transition-all",
-                                        !form.watch("isFeatured") ? "bg-red-500/10 text-red-500" : "bg-background text-muted-foreground hover:bg-muted/30"
-                                    )}>False</button>
-                                <button type="button" onClick={() => form.setValue("isFeatured", true)}
-                                    className={cn("flex-1 text-[10px] font-bold uppercase transition-all",
-                                        form.watch("isFeatured") ? "bg-emerald-500/10 text-emerald-500" : "bg-background text-muted-foreground hover:bg-muted/30"
-                                    )}>True</button>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ COLLEGE IMAGE ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={ImageIcon} title="College Image" subtitle="Upload the main image" />
-                </CardHeader>
-                <CardContent className="p-5">
-                    <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                    <div
-                        onClick={() => imageInputRef.current?.click()}
-                        className="relative h-40 border-2 border-dashed border-border/40 rounded-lg flex flex-col items-center justify-center bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group overflow-hidden"
-                    >
-                        {imagePreview ? (
-                            <>
-                                <img src={imagePreview} alt="College" className="absolute inset-0 w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <span className="text-white text-xs font-semibold">Click to change</span>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <Upload className="h-8 w-8 text-muted-foreground/30 group-hover:text-primary/50 transition-colors" />
-                                <span className="mt-2 text-xs text-muted-foreground">Click to upload or drag & drop</span>
-                                <span className="text-[10px] text-muted-foreground/50 mt-0.5">PNG, JPG, WEBP up to 5MB</span>
-                            </>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ DISCIPLINE / COURSE / SPECIALIZATION ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={GraduationCap} title="Discipline, Course & Specialization" subtitle="Select discipline → course → add specializations" />
-                </CardHeader>
-                <CardContent className="p-5 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <FL>Discipline</FL>
-                            <Select onValueChange={(val) => form.setValue("selectedDiscipline", val)} value={selectedDiscipline}>
-                                <SelectTrigger className={inputCls}>
-                                    <SelectValue placeholder="Select discipline" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[250px]">
-                                    {disciplines.map((d: any) => (
-                                        <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Course</FL>
-                            <Select
-                                onValueChange={(val) => form.setValue("selectedCourse", val)}
-                                value={selectedCourse}
-                                disabled={!selectedDiscipline}
-                            >
-                                <SelectTrigger className={cn(inputCls, "disabled:opacity-40")}>
-                                    <SelectValue placeholder={selectedDiscipline ? "Select course" : "Pick discipline first"} />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[250px]">
-                                    {coursesForDiscipline.map((c: any, i: number) => (
-                                        <SelectItem key={`course-${i}`} value={c.name}>{c.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    {/* Specialization multi-select */}
-                    {selectedCourse && specsForCourse.length > 0 && (
-                        <div className="space-y-2">
-                            <FL>Add Specializations</FL>
-                            <Select
-                                onValueChange={(val) => {
-                                    if (!selectedSpecs.includes(val)) {
-                                        setSelectedSpecs(prev => [...prev, val]);
-                                    }
-                                }}
-                                value=""
-                            >
-                                <SelectTrigger className={inputCls}>
-                                    <SelectValue placeholder="+ Pick a specialization to add" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[250px]">
-                                    {specsForCourse
-                                        .filter((s: string) => !selectedSpecs.includes(s))
-                                        .map((s: string, i: number) => (
-                                            <SelectItem key={`spec-${i}`} value={s}>{s}</SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    {/* Selected tags display */}
-                    {(selectedDiscipline || selectedCourse || selectedSpecs.length > 0) && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                            {selectedDiscipline && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-[11px] py-0.5 px-2">
-                                    {selectedDiscipline}
-                                </Badge>
-                            )}
-                            {selectedCourse && (
-                                <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[11px] py-0.5 px-2">
-                                    {selectedCourse}
-                                </Badge>
-                            )}
-                            {selectedSpecs.map((spec) => (
-                                <Badge key={spec} variant="outline" className="bg-purple-50 text-purple-600 border-purple-200 text-[11px] py-0.5 pl-2 pr-1 flex items-center gap-1">
-                                    {spec}
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedSpecs(prev => prev.filter(s => s !== spec))}
-                                        className="ml-0.5 h-3.5 w-3.5 rounded-full hover:bg-purple-200 flex items-center justify-center"
-                                    >
-                                        <X className="h-2.5 w-2.5" />
-                                    </button>
-                                </Badge>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ ACTION URLS ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={Globe} title="Action URLs" subtitle="Apply Now and Download Brochure links" />
-                </CardHeader>
-                <CardContent className="p-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <FL>Apply Now URL</FL>
-                            <Input {...form.register("apply_now_url")} placeholder="https://apply.example.com" className={inputCls} />
-                        </div>
-                        <div className="space-y-1.5">
-                            <FL>Download Brochure URL</FL>
-                            <Input {...form.register("download_brochure_url")} placeholder="https://brochure.example.com" className={inputCls} />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ QUICK INFO ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={FileText} title="Quick Info" subtitle="Key statistics at a glance" count={quickInfo.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {quickInfo.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => quickInfo.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Number</FL>
-                                <Input {...form.register(`home_four_list.${index}.number`)} placeholder="500+" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Name</FL>
-                                <Input {...form.register(`home_four_list.${index}.name`)} placeholder="Students Enrolled" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => quickInfo.append({ number: "", name: "" })} label="Add Quick Info" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ ICON SECTION ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={Star} title="Icon Section" subtitle="Top icon highlights" count={iconSection.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {iconSection.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => iconSection.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Number</FL>
-                                <Input {...form.register(`overview_fourlist.${index}.number`)} placeholder="25" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Name</FL>
-                                <Input {...form.register(`overview_fourlist.${index}.name`)} placeholder="Years of Excellence" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => iconSection.append({ number: "", name: "" })} label="Add Icon Entry" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ OVERVIEW ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={BookOpen} title="Overview" subtitle="Detailed college description" />
-                </CardHeader>
-                <CardContent className="p-5">
-                    <Textarea
-                        {...form.register("college_description")}
-                        placeholder="Write a detailed description about the college..."
-                        className="min-h-[140px] bg-background border-border/50 text-sm"
-                    />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ HISTORY & MILESTONES ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={History} title="History & Milestones" subtitle="Timeline of achievements" count={timeline.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {timeline.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => timeline.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Name</FL>
-                                <Input {...form.register(`college_timeline.${index}.name`)} placeholder="Founded" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Year</FL>
-                                <Input {...form.register(`college_timeline.${index}.year`)} placeholder="1990" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => timeline.append({ name: "", college: "", year: "" })} label="Add Milestone" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ INTAKE CAPACITY ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={Users} title="Intake Capacity" subtitle="Course-wise student intake" count={intake.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {intake.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => intake.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Program Name</FL>
-                                <Input {...form.register(`intake_details.${index}.name`)} placeholder="MBBS" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Seats</FL>
-                                <Input type="number" {...form.register(`intake_details.${index}.number`)} placeholder="150" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => intake.append({ name: "", number: "" })} label="Add Intake" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ FEE STRUCTURE ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={DollarSign} title="Fee Structure" subtitle="Course-wise fee details" count={fees.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {fees.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => fees.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Program</FL>
-                                <Input {...form.register(`fee_structure.${index}.name`)} placeholder="MBBS" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Fee Amount</FL>
-                                <Input {...form.register(`fee_structure.${index}.number`)} placeholder="₹5,00,000" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => fees.append({ name: "", number: "" })} label="Add Fee Entry" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ RANKING & AWARDS ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={Award} title="Ranking & Awards" subtitle="Recognitions and accolades" count={rankings.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {rankings.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => rankings.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Award Name</FL>
-                                <Input {...form.register(`ranking.${index}.name`)} placeholder="NIRF Ranking" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Tagline</FL>
-                                <Input {...form.register(`ranking.${index}.tagline`)} placeholder="#5 in India" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => rankings.append({ name: "", tagline: "" })} label="Add Ranking" />
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ CUTOFF SCORES ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={BarChart3} title="Admission — Cutoff Scores" subtitle="All India Quota & State Quota" />
-                </CardHeader>
-                <CardContent className="p-5 space-y-5">
-                    {/* AIQ */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                            <span className="text-[11px] font-bold uppercase text-foreground">All India Quota</span>
-                            <span className="text-[10px] text-muted-foreground">({aiqCutoff.fields.length})</span>
-                        </div>
-                        {aiqCutoff.fields.map((field, index) => (
-                            <RepeatableRow key={field.id} index={index} onRemove={() => aiqCutoff.remove(index)}>
-                                <div className="space-y-1">
-                                    <FL>Category</FL>
-                                    <Input {...form.register(`all_india_cutoff.${index}.name`)} placeholder="General" className="h-8 bg-card border-border/40 text-sm" />
-                                </div>
-                                <div className="space-y-1">
-                                    <FL>Score</FL>
-                                    <Input type="number" {...form.register(`all_india_cutoff.${index}.number`)} placeholder="620" className="h-8 bg-card border-border/40 text-sm" />
-                                </div>
-                            </RepeatableRow>
-                        ))}
-                        <AddRowButton onClick={() => aiqCutoff.append({ name: "", number: "" })} label="Add AIQ Cutoff" />
-                    </div>
-
-                    <div className="border-t border-border/30" />
-
-                    {/* State Quota */}
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[11px] font-bold uppercase text-foreground">State Quota</span>
-                            <span className="text-[10px] text-muted-foreground">({stateCutoff.fields.length})</span>
-                        </div>
-                        {stateCutoff.fields.map((field, index) => (
-                            <RepeatableRow key={field.id} index={index} onRemove={() => stateCutoff.remove(index)}>
-                                <div className="space-y-1">
-                                    <FL>Category</FL>
-                                    <Input {...form.register(`state_cutoff.${index}.name`)} placeholder="OBC" className="h-8 bg-card border-border/40 text-sm" />
-                                </div>
-                                <div className="space-y-1">
-                                    <FL>Score</FL>
-                                    <Input type="number" {...form.register(`state_cutoff.${index}.number`)} placeholder="580" className="h-8 bg-card border-border/40 text-sm" />
-                                </div>
-                            </RepeatableRow>
-                        ))}
-                        <AddRowButton onClick={() => stateCutoff.append({ name: "", number: "" })} label="Add State Cutoff" />
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* ═══════════ ADMISSION PROCESS ═══════════ */}
-            <Card className={cardCls}>
-                <CardHeader className="pb-0 pt-5 px-5">
-                    <SectionHeader icon={ClipboardList} title="Admission Process" subtitle="Step-by-step guide" count={admProcess.fields.length} />
-                </CardHeader>
-                <CardContent className="p-5 space-y-2">
-                    {admProcess.fields.map((field, index) => (
-                        <RepeatableRow key={field.id} index={index} onRemove={() => admProcess.remove(index)}>
-                            <div className="space-y-1">
-                                <FL>Step Name</FL>
-                                <Input {...form.register(`admission_process.${index}.name`)} placeholder="Application" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                            <div className="space-y-1">
-                                <FL>Information</FL>
-                                <Input {...form.register(`admission_process.${index}.info`)} placeholder="Brief info" className="h-8 bg-card border-border/40 text-sm" />
-                            </div>
-                        </RepeatableRow>
-                    ))}
-                    <AddRowButton onClick={() => admProcess.append({ name: "", info: "" })} label="Add Process Step" />
-                </CardContent>
-            </Card>
-
-            <Button type="submit" className="hidden">Submit</Button>
-        </form>
+  const removeGalleryImage = (indexToRemove: number) => {
+    form.setValue(
+      "gallery",
+      (galleryValue || []).filter((_, index) => index !== indexToRemove),
+      { shouldDirty: true },
     );
+  };
+
+  useEffect(() => {
+    if (!initialData) {
+      form.setValue("slug", slugify(collegeName));
+    }
+  }, [collegeName, form, initialData]);
+
+  useEffect(() => {
+    form.register("mgmt_type", {
+      required: "Management type is required",
+    });
+  }, [form]);
+
+  useEffect(() => {
+    const fetchAirports = async () => {
+      if (!selectedStateValue) {
+        setAirportOptions([]);
+        form.setValue("airport", "");
+        return;
+      }
+
+      try {
+        setIsLoadingAirports(true);
+        const response = await reachUsService.getAll({
+          category: "airport",
+          state: selectedStateValue,
+          page: 1,
+          pageSize: 500,
+        });
+        const airports = response.data || [];
+        setAirportOptions(airports);
+
+        const currentAirport = form.getValues("airport");
+        if (
+          currentAirport &&
+          !airports.some((airport) => airport.name === currentAirport)
+        ) {
+          form.setValue("airport", "");
+        }
+      } catch (error) {
+        console.error("Error fetching airports:", error);
+        setAirportOptions([]);
+      } finally {
+        setIsLoadingAirports(false);
+      }
+    };
+
+    fetchAirports();
+  }, [form, selectedStateValue]);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await cityService.getAll({
+          page: 1,
+          pageSize: 9999,
+        });
+
+        const apiCities = (response.data || []).filter(
+          (city): city is City & { state: string } =>
+            Boolean(city.city) && Boolean(city.state),
+        );
+
+        setAvailableCities([
+          ...apiCities.map((city) => ({
+            id: city.id,
+            city: city.city,
+            state: city.state,
+          })),
+        ]);
+      } catch (error) {
+        console.error("Error fetching city options:", error);
+        setAvailableCities([]);
+      }
+    };
+
+    fetchCities();
+  }, []);
+
+  const stateOptions = useMemo(() => {
+    return Array.from(new Set(availableCities.map((city) => city.state))).sort(
+      (a, b) => a.localeCompare(b),
+    );
+  }, [availableCities]);
+
+  const citiesForSelectedState = useMemo(() => {
+    if (!selectedStateValue) return [];
+
+    return availableCities
+      .filter((city) => city.state === selectedStateValue)
+      .sort((a, b) => a.city.localeCompare(b.city));
+  }, [availableCities, selectedStateValue]);
+
+  useEffect(() => {
+    if (!selectedStateValue || !selectedCityValue) return;
+
+    const hasSelectedCity = citiesForSelectedState.some(
+      (city) =>
+        city.id.toString() === selectedCityValue ||
+        city.city === selectedCityValue,
+    );
+
+    if (!hasSelectedCity) {
+      form.setValue("city", "");
+    }
+  }, [citiesForSelectedState, form, selectedCityValue, selectedStateValue]);
+
+  useEffect(() => {
+    if (
+      !selectedStateValue ||
+      !selectedCityValue ||
+      availableCities.length === 0
+    ) {
+      return;
+    }
+
+    const alreadyMapped = availableCities.some(
+      (city) => city.id.toString() === selectedCityValue,
+    );
+
+    if (alreadyMapped) return;
+
+    const matchingCity = availableCities.find(
+      (city) =>
+        city.city === selectedCityValue && city.state === selectedStateValue,
+    );
+
+    if (matchingCity) {
+      form.setValue("city", matchingCity.id.toString());
+    }
+  }, [availableCities, form, selectedCityValue, selectedStateValue]);
+
+  const onSubmit = async (data: CollegeFormValues) => {
+    const selectedCity = availableCities.find(
+      (city) =>
+        city.id.toString() === data.city ||
+        (city.city === data.city && city.state === data.state),
+    );
+
+    const payload = {
+      ...data,
+      featured: data.featured,
+      isFeatured: data.featured,
+      priority: Number(data.priority) || 1,
+      college_type: data.mgmt_type,
+      established_year: data.establish_year,
+      affiliated_with: data.university_name,
+      NIRF_rank: data.nirf_rank,
+      college_description: data.overview,
+      apply_now_url: data.action_url,
+      gallery: data.gallery,
+      admission_counselling: data.admission_counselling.join("; "),
+      cityId: selectedCity && selectedCity.id > 0 ? selectedCity.id : undefined,
+      city_name: selectedCity?.city || data.city,
+      state: selectedCity?.state || data.state,
+      clinical_excilence_lab: pruneClinicalExcilenceLabRows(
+        data.clinical_excilence_lab,
+      ),
+    };
+
+    await onSave(
+      payload as unknown as Partial<College> & Record<string, unknown>,
+    );
+  };
+
+  const onInvalid = (errors: FieldErrors<CollegeFormValues>) => {
+    const firstError = Object.keys(errors)[0] as keyof CollegeFormValues;
+    toast.error("Please complete the required college fields before saving.");
+
+    if (firstError) {
+      form.setFocus(firstError);
+    }
+  };
+
+  const inputCls =
+    "h-10 rounded-lg border-border/60 bg-background text-sm shadow-xs";
+  const cardCls =
+    "overflow-hidden rounded-lg border-border/60 bg-card shadow-xs";
+  const cardHeaderCls = "border-b border-border/50 bg-muted/20 px-6 py-5";
+  const cardContentCls = "p-6 space-y-5";
+
+  return (
+    <form
+      id="college-form"
+      onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+      className="space-y-6 pb-6"
+    >
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Building2}
+            title="Basic Information"
+            subtitle="Primary college details"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <FL required>College Name</FL>
+              <Input
+                {...form.register("college_name", {
+                  required: "College name is required",
+                })}
+                placeholder="Enter college name"
+                className={cn(
+                  inputCls,
+                  form.formState.errors.college_name &&
+                    "border-destructive focus-visible:ring-destructive/20",
+                )}
+                aria-invalid={Boolean(form.formState.errors.college_name)}
+              />
+              <FieldError
+                message={form.formState.errors.college_name?.message}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Slug</FL>
+              <Input
+                {...form.register("slug")}
+                placeholder="college-url-slug"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>University Name</FL>
+              <Input
+                {...form.register("university_name")}
+                placeholder="Enter university name"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <FL>Approval</FL>
+              <Select
+                value={approvalValue}
+                onValueChange={(value) => form.setValue("approval", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select approval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Approved by NMC">
+                    Approved by NMC
+                  </SelectItem>
+                  <SelectItem value="Approved by DCI">
+                    Approved by DCI
+                  </SelectItem>
+                  <SelectItem value="Approved by VCI">
+                    Approved by VCI
+                  </SelectItem>
+                  <SelectItem value="Approved by NCISM">
+                    Approved by NCISM
+                  </SelectItem>
+                  <SelectItem value="Approved by NCH">
+                    Approved by NCH
+                  </SelectItem>
+                  <SelectItem value="Approved by CCIM">
+                    Approved by CCIM
+                  </SelectItem>
+                  <SelectItem value="Approved by PCI">
+                    Approved by PCI
+                  </SelectItem>
+                  <SelectItem value="Approved by INC">
+                    Approved by INC
+                  </SelectItem>
+                  <SelectItem value="Approved by ICAR">
+                    Approved by ICAR
+                  </SelectItem>
+                  <SelectItem value="Approved by AICTE">
+                    Approved by AICTE
+                  </SelectItem>
+                  <SelectItem value="Approved by DGCA">
+                    Approved by DGCA
+                  </SelectItem>
+                  <SelectItem value="Approved by BCI">
+                    Approved by BCI
+                  </SelectItem>
+                  <SelectItem value="Approved by SBTE">
+                    Approved by SBTE
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Status</FL>
+              <Select
+                value={statusValue}
+                onValueChange={(value) => form.setValue("status", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Approved">Approved</SelectItem>
+                  <SelectItem value="Recognized">Recognized</SelectItem>
+                  <SelectItem value="AUTONOMUS">AUTONOMUS</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Mgmt Type</FL>
+              <Select
+                value={managementTypeValue}
+                onValueChange={(value) =>
+                  form.setValue("mgmt_type", value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              >
+                <SelectTrigger
+                  className={cn(
+                    inputCls,
+                    form.formState.errors.mgmt_type &&
+                      "border-destructive focus-visible:ring-destructive/20",
+                  )}
+                  aria-invalid={Boolean(form.formState.errors.mgmt_type)}
+                >
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PRIVATE">PRIVATE</SelectItem>
+                  <SelectItem value="GOVERMENT">GOVERMENT</SelectItem>
+                  <SelectItem value="SEMI GOVERMENT">SEMI GOVERMENT</SelectItem>
+                  <SelectItem value="TRUST">TRUST</SelectItem>
+                  <SelectItem value="DEEMED UNIVERSITY">
+                    DEEMED UNIVERSITY
+                  </SelectItem>
+                  <SelectItem value="STATE TECHANICAL UNIVERSITY">
+                    STATE TECHANICAL UNIVERSITY
+                  </SelectItem>
+                  <SelectItem value="STATE PRIVATE UNIVERSITY">
+                    STATE PRIVATE UNIVERSITY
+                  </SelectItem>
+                  <SelectItem value="IITS">IITS</SelectItem>
+                  <SelectItem value="NITS">NITS</SelectItem>
+                  <SelectItem value="GFTI/CFTI">GFTI/CFTI</SelectItem>
+                  <SelectItem value="IIITS">IIITS</SelectItem>
+                  <SelectItem value="STATE GOV UNIVERSITY">
+                    STATE GOV UNIVERSITY
+                  </SelectItem>
+                  <SelectItem value="CENTRAL UNIVERSITY">
+                    CENTRAL UNIVERSITY
+                  </SelectItem>
+                  <SelectItem value="IIM">IIM</SelectItem>
+                  <SelectItem value="NLU">NLU</SelectItem>
+                  <SelectItem value="AIIMS">AIIMS</SelectItem>
+                  <SelectItem value="ICAR">ICAR</SelectItem>
+                  <SelectItem value="IMU Campus">IMU Campus</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldError message={form.formState.errors.mgmt_type?.message} />
+            </div>
+            <div className="space-y-1.5">
+              <FL required>Establish Year</FL>
+              <Input
+                {...form.register("establish_year", {
+                  required: "Establish year is required",
+                })}
+                placeholder="1995"
+                className={cn(
+                  inputCls,
+                  form.formState.errors.establish_year &&
+                    "border-destructive focus-visible:ring-destructive/20",
+                )}
+                aria-invalid={Boolean(form.formState.errors.establish_year)}
+              />
+              <FieldError
+                message={form.formState.errors.establish_year?.message}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <FL>State</FL>
+              <Select
+                value={selectedStateValue}
+                onValueChange={(value) => {
+                  form.setValue("state", value);
+                  form.setValue("city", "");
+                }}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select state" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {stateOptions.map((state) => (
+                    <SelectItem key={state} value={state}>
+                      {state}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>City</FL>
+              <Select
+                value={selectedCityValue}
+                onValueChange={(value) => form.setValue("city", value)}
+                disabled={!selectedStateValue}
+              >
+                <SelectTrigger className={cn(inputCls, "disabled:opacity-50")}>
+                  <SelectValue
+                    placeholder={
+                      selectedStateValue ? "Select city" : "Select state first"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {citiesForSelectedState.map((city) => (
+                    <SelectItem
+                      key={`${city.id}-${city.city}`}
+                      value={city.id.toString()}
+                    >
+                      {city.city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Campus Area</FL>
+              <Input
+                {...form.register("campus_area")}
+                placeholder="e.g. 45 Acres"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={GraduationCap}
+            title="Discipline & Courses"
+            subtitle="Program structure and seat details"
+            count={courses.fields.length}
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="space-y-1.5">
+            <FL>Discipline Section</FL>
+            <Select
+              value={disciplineValue}
+              onValueChange={(value) => form.setValue("discipline", value)}
+            >
+              <SelectTrigger className={inputCls}>
+                <SelectValue placeholder="Select discipline" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[260px]">
+                {disciplineOptions.map((discipline) => (
+                  <SelectItem key={discipline.value} value={discipline.value}>
+                    {discipline.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {courses.fields.map((field, index) => (
+            <RepeatableRow
+              key={field.id}
+              index={index}
+              onRemove={() => courses.remove(index)}
+            >
+              <div className="space-y-1">
+                <FL>Course</FL>
+                <Input
+                  {...form.register(`courses.${index}.course`)}
+                  placeholder="MBBS"
+                  className="h-8 bg-card border-border/40 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <FL>Duration</FL>
+                <Input
+                  {...form.register(`courses.${index}.duration`)}
+                  placeholder="5.5 Years"
+                  className="h-8 bg-card border-border/40 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <FL>Course Level</FL>
+                <Select
+                  value={watchedCourses?.[index]?.course_level ?? ""}
+                  onValueChange={(value) =>
+                    form.setValue(
+                      `courses.${index}.course_level`,
+                      value as CourseLevel,
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-8 bg-card border-border/40 text-sm">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UG">UG</SelectItem>
+                    <SelectItem value="PG">PG</SelectItem>
+                    <SelectItem value="Diploma">Diploma</SelectItem>
+                    <SelectItem value="Doctorate">Doctorate</SelectItem>
+                    <SelectItem value="Certificate">Certificate</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <CourseSeatDetailsGroup
+                control={form.control}
+                register={form.register}
+                courseIndex={index}
+              />
+            </RepeatableRow>
+          ))}
+          <AddRowButton
+            onClick={() =>
+              courses.append({
+                course: "",
+                duration: "",
+                course_level: "",
+                total_intake: [createCourseValueEntry()],
+                intake_total: [createCourseValueEntry()],
+                fee: [createCourseValueEntry()],
+                pg_seats: [createCourseValueEntry()],
+                ss_seats: [createCourseValueEntry()],
+              })
+            }
+            label="Add Course"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Star}
+            title="Accreditation & Admission"
+            subtitle="Academic standing and counselling data"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <FL required>NIRF Rank</FL>
+              <Input
+                {...form.register("nirf_rank", {
+                  required: "NIRF rank is required",
+                })}
+                placeholder="12"
+                className={cn(
+                  inputCls,
+                  form.formState.errors.nirf_rank &&
+                    "border-destructive focus-visible:ring-destructive/20",
+                )}
+                aria-invalid={Boolean(form.formState.errors.nirf_rank)}
+              />
+              <FieldError message={form.formState.errors.nirf_rank?.message} />
+            </div>
+            <div className="space-y-1.5">
+              <FL>NAAC</FL>
+              <Select
+                value={naacValue}
+                onValueChange={(value) => form.setValue("naac", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select NAAC" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NAAC_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>NBA</FL>
+              <Select
+                value={nbaValue}
+                onValueChange={(value) => form.setValue("nba", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select NBA" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NBA_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5 md:col-span-3">
+              <FL>Admission Counselling</FL>
+              <div className="space-y-2">
+                <div className="min-h-9 rounded-md border border-border/50 bg-background px-3 py-2">
+                  {admissionCounsellingValue.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">
+                      Select counselling
+                    </span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {admissionCounsellingValue.map((option) => (
+                        <span
+                          key={option}
+                          className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary"
+                        >
+                          {option}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="max-h-[260px] overflow-y-auto rounded-lg border border-border/40 bg-card/70 p-3">
+                  <div className="grid grid-cols-1 gap-2">
+                    {ADMISSION_COUNSELLING_OPTIONS.map((option) => {
+                      const isChecked =
+                        admissionCounsellingValue.includes(option);
+
+                      return (
+                        <label
+                          key={option}
+                          className="flex items-start gap-2 rounded-md border border-border/30 bg-background/70 p-2 text-xs leading-5 text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                        >
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={(checked) => {
+                              const nextValues = checked
+                                ? [...admissionCounsellingValue, option]
+                                : admissionCounsellingValue.filter(
+                                    (selectedOption) =>
+                                      selectedOption !== option,
+                                  );
+
+                              form.setValue(
+                                "admission_counselling",
+                                nextValues,
+                                { shouldDirty: true },
+                              );
+                            }}
+                            className="mt-0.5"
+                          />
+                          <span>{option}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Eligibility</FL>
+              <Input
+                {...form.register("eligibility")}
+                placeholder="12th PCB / Graduation"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Exam Accepted</FL>
+              <Select
+                value={examAcceptedValue}
+                onValueChange={(value) => form.setValue("exam_accepted", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select exam" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {EXAM_ACCEPTED_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <FL required>College Description</FL>
+            <Textarea
+              {...form.register("overview", {
+                required: "College description is required",
+              })}
+              placeholder="Write a college description..."
+              className={cn(
+                "min-h-[140px] bg-background border-border/50 text-sm",
+                form.formState.errors.overview &&
+                  "border-destructive focus-visible:ring-destructive/20",
+              )}
+              aria-invalid={Boolean(form.formState.errors.overview)}
+            />
+            <FieldError message={form.formState.errors.overview?.message} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={BookOpen}
+            title="Monthly Stipend / Scholarship"
+            subtitle="Internship, exchange program, sponsorship, and year-wise stipend"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <FL>Internship</FL>
+              <Select
+                value={internshipValue}
+                onValueChange={(value) => form.setValue("internship", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select internship" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YES_NO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Exchange Program</FL>
+              <Input
+                {...form.register("exchange_program")}
+                placeholder="Exchange program details"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Sponsorship</FL>
+              <Select
+                value={sponsorshipValue}
+                onValueChange={(value) => form.setValue("sponsorship", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select sponsorship" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YES_NO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <FL>1st Year</FL>
+              <Input
+                {...form.register("stipend_year_1")}
+                placeholder="e.g. 12,000 / month"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>2nd Year</FL>
+              <Input
+                {...form.register("stipend_year_2")}
+                placeholder="e.g. 14,000 / month"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>3rd Year</FL>
+              <Input
+                {...form.register("stipend_year_3")}
+                placeholder="e.g. 16,000 / month"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={MapPin}
+            title="Reach Us"
+            subtitle="Travel connectivity information"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <FL>Airport</FL>
+              <Select
+                value={selectedAirportValue}
+                onValueChange={(value) => form.setValue("airport", value)}
+                disabled={
+                  !selectedStateValue ||
+                  isLoadingAirports ||
+                  airportOptions.length === 0
+                }
+              >
+                <SelectTrigger className={cn(inputCls, "disabled:opacity-50")}>
+                  <SelectValue
+                    placeholder={
+                      !selectedStateValue
+                        ? "Select state first"
+                        : isLoadingAirports
+                          ? "Loading airports..."
+                          : airportOptions.length > 0
+                            ? "Select airport"
+                            : "No airports found"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {airportOptions.map((airport) => (
+                    <SelectItem key={airport.id} value={airport.name}>
+                      {airport.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Railway Station</FL>
+              <Input
+                {...form.register("railway_station")}
+                placeholder="Nearest railway station"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Bus Stand</FL>
+              <Input
+                {...form.register("bus_stand")}
+                placeholder="Nearest bus stand"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Hospital}
+            title="Hospital Bed & Overview"
+            subtitle="Hospital bed, OT, OPD, and clinical exposure metrics"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+            <div className="space-y-1.5">
+              <FL>Hospital Bed</FL>
+              <Input
+                {...form.register("hospital_bed")}
+                placeholder="500+"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>No. of OT</FL>
+              <Input
+                {...form.register("no_of_ot")}
+                placeholder="10"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Total Bed</FL>
+              <Input
+                {...form.register("total_bed")}
+                placeholder="700"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>SS Bed</FL>
+              <Input
+                {...form.register("ss_bed")}
+                placeholder="120"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>MS Bed</FL>
+              <Input
+                {...form.register("ms_bed")}
+                placeholder="80"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <FL>OPD Running</FL>
+              <Input
+                {...form.register("opd_running")}
+                placeholder="Daily OPD count"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Average OT</FL>
+              <Input
+                {...form.register("average_ot")}
+                placeholder="Average OT per day"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Clinical Rotation</FL>
+              <Select
+                value={clinicalRotationValue}
+                onValueChange={(value) =>
+                  form.setValue("clinical_rotation", value)
+                }
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YES_NO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Medical Camping</FL>
+              <Select
+                value={medicalCampingValue}
+                onValueChange={(value) =>
+                  form.setValue("medical_camping", value)
+                }
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YES_NO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={ClipboardList}
+            title="Cutoff Details"
+            subtitle="State, all India, minority, and government quota cutoffs"
+          />
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                <span className="text-[11px] font-bold uppercase text-foreground">
+                  Cutoff State
+                </span>
+              </div>
+              <div className="flex border border-border/50 rounded-md overflow-hidden h-7">
+                <button
+                  type="button"
+                  onClick={() => form.setValue("cutoff_state_enabled", false)}
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    !cutoffStateEnabledValue
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("cutoff_state_enabled", true)}
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    cutoffStateEnabledValue
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  On
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              {roundCutoffFields("cutoff_state").map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <FL>{field.label}</FL>
+                  <Input
+                    {...form.register(field.name)}
+                    placeholder={field.label}
+                    className={inputCls}
+                    disabled={!cutoffStateEnabledValue}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[11px] font-bold uppercase text-foreground">
+                  Cutoff All India
+                </span>
+              </div>
+              <div className="flex border border-border/50 rounded-md overflow-hidden h-7">
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("cutoff_all_india_enabled", false)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    !cutoffAllIndiaEnabledValue
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("cutoff_all_india_enabled", true)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    cutoffAllIndiaEnabledValue
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  On
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              {roundCutoffFields("cutoff_all_india").map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <FL>{field.label}</FL>
+                  <Input
+                    {...form.register(field.name)}
+                    placeholder={field.label}
+                    className={inputCls}
+                    disabled={!cutoffAllIndiaEnabledValue}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                <span className="text-[11px] font-bold uppercase text-foreground">
+                  Cutoff Minority
+                </span>
+              </div>
+              <div className="flex border border-border/50 rounded-md overflow-hidden h-7">
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("cutoff_minority_enabled", false)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    !cutoffMinorityEnabledValue
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  onClick={() => form.setValue("cutoff_minority_enabled", true)}
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    cutoffMinorityEnabledValue
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  On
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              {roundCutoffFields("cutoff_minority").map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <FL>{field.label}</FL>
+                  <Input
+                    {...form.register(field.name)}
+                    placeholder={field.label}
+                    className={inputCls}
+                    disabled={!cutoffMinorityEnabledValue}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" />
+                <span className="text-[11px] font-bold uppercase text-foreground">
+                  Govt State Cutoff
+                </span>
+              </div>
+              <div className="flex border border-border/50 rounded-md overflow-hidden h-7">
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("govt_state_cutoff_enabled", false)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    !govtStateCutoffEnabledValue
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("govt_state_cutoff_enabled", true)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    govtStateCutoffEnabledValue
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  On
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              {[
+                { label: "UROP", name: "govt_state_cutoff.urop" as const },
+                { label: "EWS", name: "govt_state_cutoff.ews" as const },
+                { label: "OBC", name: "govt_state_cutoff.obc" as const },
+                { label: "SC", name: "govt_state_cutoff.sc" as const },
+                { label: "ST", name: "govt_state_cutoff.st" as const },
+                { label: "UR", name: "govt_state_cutoff.ur" as const },
+              ].map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <FL>{field.label}</FL>
+                  <Input
+                    {...form.register(field.name)}
+                    placeholder={field.label}
+                    className={inputCls}
+                    disabled={!govtStateCutoffEnabledValue}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                <span className="text-[11px] font-bold uppercase text-foreground">
+                  Government College AIQ Cutoff
+                </span>
+              </div>
+              <div className="flex border border-border/50 rounded-md overflow-hidden h-7">
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue(
+                      "government_college_aiq_cutoff_enabled",
+                      false,
+                    )
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    !governmentCollegeAiqCutoffEnabledValue
+                      ? "bg-red-500/10 text-red-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  Off
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("government_college_aiq_cutoff_enabled", true)
+                  }
+                  className={cn(
+                    "px-3 text-[10px] font-bold uppercase transition-all",
+                    governmentCollegeAiqCutoffEnabledValue
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-background text-muted-foreground hover:bg-muted/30",
+                  )}
+                >
+                  On
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+              {[
+                {
+                  label: "EWS",
+                  name: "government_college_aiq_cutoff.ews" as const,
+                },
+                {
+                  label: "OBC",
+                  name: "government_college_aiq_cutoff.obc" as const,
+                },
+                {
+                  label: "SC",
+                  name: "government_college_aiq_cutoff.sc" as const,
+                },
+                {
+                  label: "ST",
+                  name: "government_college_aiq_cutoff.st" as const,
+                },
+                {
+                  label: "UR",
+                  name: "government_college_aiq_cutoff.ur" as const,
+                },
+              ].map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <FL>{field.label}</FL>
+                  <Input
+                    {...form.register(field.name)}
+                    placeholder={field.label}
+                    className={inputCls}
+                    disabled={!governmentCollegeAiqCutoffEnabledValue}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Microscope}
+            title="Clinical Excilence Lab"
+            subtitle="Course-wise department and lab selections"
+            count={clinicalExcilenceLabFields.fields.length}
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          {clinicalExcilenceLabFields.fields.map((field, index) => {
+            const selectedRow =
+              watchedClinicalExcilenceLabs?.[index] ??
+              defaultClinicalExcilenceLabRow();
+            const selectedCourse = clinicalExcilenceLabOptions.find(
+              (course) => course.course === selectedRow.course,
+            );
+            const departmentOptions = selectedCourse?.departments ?? [];
+            const selectedDepartment = departmentOptions.find(
+              (department) => department.department === selectedRow.department,
+            );
+            const labOptions = selectedDepartment?.labs ?? [];
+            const selectedLabs = selectedRow.labs ?? [];
+
+            return (
+              <RepeatableRow
+                key={field.id}
+                index={index}
+                onRemove={() => clinicalExcilenceLabFields.remove(index)}
+              >
+                <div className="space-y-1">
+                  <FL>Course</FL>
+                  <Select
+                    value={selectedRow.course}
+                    onValueChange={(value) => {
+                      form.setValue(
+                        `clinical_excilence_lab.${index}.course`,
+                        value,
+                        { shouldDirty: true },
+                      );
+                      form.setValue(
+                        `clinical_excilence_lab.${index}.department`,
+                        "",
+                        { shouldDirty: true },
+                      );
+                      form.setValue(
+                        `clinical_excilence_lab.${index}.labs`,
+                        [],
+                        { shouldDirty: true },
+                      );
+                    }}
+                  >
+                    <SelectTrigger className="h-8 bg-card border-border/40 text-sm">
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[260px]">
+                      {clinicalExcilenceLabOptions.map((course) => (
+                        <SelectItem key={course.course} value={course.course}>
+                          {course.course}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1 md:col-span-1 xl:col-span-2">
+                  <FL>Department</FL>
+                  <Select
+                    value={selectedRow.department}
+                    onValueChange={(value) => {
+                      form.setValue(
+                        `clinical_excilence_lab.${index}.department`,
+                        value,
+                        { shouldDirty: true },
+                      );
+                      form.setValue(
+                        `clinical_excilence_lab.${index}.labs`,
+                        [],
+                        { shouldDirty: true },
+                      );
+                    }}
+                    disabled={!selectedRow.course}
+                  >
+                    <SelectTrigger className="h-8 bg-card border-border/40 text-sm disabled:opacity-50">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[260px]">
+                      {departmentOptions.map((department) => (
+                        <SelectItem
+                          key={department.department}
+                          value={department.department}
+                        >
+                          {department.department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2 xl:col-span-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <FL>Labs</FL>
+                    <span className="text-[10px] font-bold text-muted-foreground bg-background border border-border/40 rounded-md px-1.5 py-0.5">
+                      {selectedLabs.length} selected
+                    </span>
+                  </div>
+
+                  {labOptions.length === 0 ? (
+                    <div className="min-h-20 rounded-lg border border-dashed border-border/50 bg-card/60 px-3 py-6 text-center text-xs text-muted-foreground">
+                      Select a course and department to view labs.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 max-h-[260px] overflow-y-auto rounded-lg border border-border/40 bg-card/70 p-3">
+                      {labOptions.map((lab) => {
+                        const isChecked = selectedLabs.includes(lab);
+
+                        return (
+                          <label
+                            key={lab}
+                            className="flex items-start gap-2 rounded-md border border-border/30 bg-background/70 p-2 text-xs leading-5 text-foreground hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                const nextLabs = checked
+                                  ? [...selectedLabs, lab]
+                                  : selectedLabs.filter(
+                                      (selectedLab) => selectedLab !== lab,
+                                    );
+
+                                form.setValue(
+                                  `clinical_excilence_lab.${index}.labs`,
+                                  nextLabs,
+                                  { shouldDirty: true },
+                                );
+                              }}
+                              className="mt-0.5"
+                            />
+                            <span>{lab}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </RepeatableRow>
+            );
+          })}
+
+          <AddRowButton
+            onClick={() =>
+              clinicalExcilenceLabFields.append(
+                defaultClinicalExcilenceLabRow(),
+              )
+            }
+            label="Add Clinical Excilence Lab"
+          />
+        </CardContent>
+      </Card>
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={ImageIcon}
+            title="Media & SEO"
+            subtitle="Featured image, gallery, campus tour, podcast, and search metadata"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <FL>Featured Image</FL>
+              <div className="rounded-lg border border-border/60 bg-background p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-border/70 bg-muted/20 sm:w-36">
+                    {featuredImageValue ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={featuredImageValue}
+                        alt="Featured college preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-[10px] font-bold uppercase">
+                          No Image
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-1 flex-col gap-2">
+                    <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-card px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary">
+                      <Upload className="h-4 w-4" />
+                      Choose image
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFeaturedImageChange}
+                      />
+                    </label>
+                    {featuredImageValue && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start text-destructive hover:text-destructive"
+                        onClick={() =>
+                          form.setValue("college_image", "", {
+                            shouldDirty: true,
+                          })
+                        }
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove image
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Campus Tour Icon</FL>
+              <Input
+                {...form.register("campus_tour_icon")}
+                placeholder="Icon name or image URL"
+                className={inputCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <FL>Podcast</FL>
+              <div className="relative">
+                <Volume2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                <Input
+                  {...form.register("podcast")}
+                  placeholder="Podcast URL"
+                  className={cn(inputCls, "pl-9")}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Meta Title</FL>
+              <Input
+                {...form.register("meta_title")}
+                placeholder="SEO title"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <FL>Gallery</FL>
+              <div className="space-y-3 rounded-lg border border-border/60 bg-background p-3">
+                <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-card px-4 text-center text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary">
+                  <Upload className="h-5 w-5" />
+                  Select multiple gallery images
+                  <span className="text-[10px] font-normal text-muted-foreground/70">
+                    PNG, JPG, WEBP, GIF
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleGalleryImagesChange}
+                  />
+                </label>
+
+                {galleryValue?.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {galleryValue.map((image, index) => (
+                      <div
+                        key={`${image.slice(0, 24)}-${index}`}
+                        className="group relative aspect-square overflow-hidden rounded-md border border-border/60 bg-muted/20"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={image}
+                          alt={`Gallery ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute right-2 top-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                          onClick={() => removeGalleryImage(index)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <FL>Meta Description</FL>
+              <Textarea
+                {...form.register("meta_description")}
+                placeholder="Short SEO description"
+                className="min-h-[110px] bg-background border-border/50 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <FL>Keywords</FL>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+              <Textarea
+                {...form.register("keywords")}
+                placeholder="medical college, mbbs, admissions"
+                className="min-h-[90px] bg-background border-border/50 pl-9 text-sm"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="sticky bottom-4 z-20 flex justify-end">
+        <div className="flex w-full items-center justify-end gap-2 rounded-lg border border-border/60 bg-background/95 p-3 shadow-lg backdrop-blur sm:w-auto">
+          <Button type="submit" className="h-10 px-4 text-sm">
+            <Save className="mr-2 h-4 w-4" />
+            Save College
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
 }

@@ -1,0 +1,246 @@
+export const ClinicalExcilenceLab = [
+  {
+    course: "MBBS",
+    departments: [
+      {
+        department: "I. Pre-Clinical Departments (1st Year)",
+        labs: [
+          "Anatomy: Study of human body structure",
+          "Physiology: Study of body functions",
+          "Biochemistry: Study of chemical processes",
+        ],
+      },
+      {
+        department: "Para-Clinical Departments (2nd Year)",
+        labs: [
+          "Pathology: Study of disease processes (includes Blood Bank)",
+          "Microbiology: Study of microorganisms and infections",
+          "Pharmacology: Study of drugs and medicine",
+          "Forensic Medicine & Toxicology (FMT): Medical-legal studies",
+          "Community Medicine (SPM): Public health and preventive medicine",
+        ],
+      },
+      {
+        department: "III. Clinical Departments (3rd Year & 4th Year)",
+        labs: [
+          "General Medicine: Non-surgical treatment of adult diseases",
+          "General Surgery: Surgical treatments",
+          "Obstetrics & Gynaecology (OBG): Women's reproductive health and childbirth",
+          "Paediatrics: Child health care",
+          "Orthopaedics: Musculoskeletal disorders",
+          "Ophthalmology: Eye care and surgery",
+          "Oto-Rhino-Laryngology (ENT): Ear, Nose, and Throat studies",
+          "Dermatology, Venereology & Leprosy: Skin and STI care",
+          "Psychiatry: Mental health treatment",
+          "Respiratory Medicine (T.B. & Chest): Lung disease treatment",
+          "Radio-Diagnosis: Imaging services (X-ray, MRI, CT)",
+          "Anesthesiology: Management of anesthesia for surgery",
+          "Dentistry: Oral health",
+          "Emergency Medicine: Urgent and acute care",
+          "Physical Medicine & Rehabilitation (PMR): Patient rehabilitation",
+        ],
+      },
+    ],
+  },
+  {
+    course: "BDS",
+    departments: [
+      {
+        department: "Main Clinical Dental Departments (Specialties)",
+        labs: [
+          "Prosthodontics and Crown & Bridge: Deals with replacing missing teeth.",
+          "Conservative Dentistry and Endodontics: Focuses on restoring teeth (fillings) and root canal treatments.",
+          "Oral & Maxillofacial Surgery: Handles extractions, trauma, and surgical procedures.",
+          "Periodontology (Periodontics): Deals with gum diseases and supporting structures.",
+          "Orthodontics & Dentofacial Orthopaedics: Focuses on tooth alignment and braces.",
+          "Paediatric and Preventive Dentistry (Pedodontics): Dental care for children.",
+          "Oral Medicine and Radiology: Diagnosis of oral diseases and X-ray imaging.",
+          "Public Health Dentistry: Focuses on community oral health and school dental health programs.",
+          "Oral Pathology & Oral Microbiology: Studies the causes and effects of diseases in the mouth",
+        ],
+      },
+      {
+        department: "Preclinical and Medical Departments",
+        labs: [
+          "Dental Anatomy, Embryology, and Oral Histology: Focuses on the structure of teeth.",
+          "Preclinical Prosthodontics Lab",
+          "Preclinical Conservative Dentistry Lab",
+          "General Human Anatomy, Physiology, and Biochemistry",
+          "General Pathology and Microbiology",
+          "General and Dental Pharmacology and Therapeutics",
+          "General Medicine & General Surgery",
+        ],
+      },
+    ],
+  },
+  {
+    course: "BAMS",
+    departments: [
+      {
+        department: "List of Departments in a BAMS",
+        labs: [
+          "Samhita & Siddhanta (Basic Principles): Deals with Ayurvedic philosophy, history, and classics.",
+          "Rachana Sharir (Anatomy): Anatomy with dissection, including modern and ancient perspectives.",
+          "Kriya Sharir (Physiology): Ayurveda Kriya Sharir and modern Physiology/Biochemistry.",
+          "Dravyaguna Vigyan (Pharmacology): Study of medicinal plants and Ayurvedic pharmacology.",
+          "Rasashastra & Bhaishajya Kalpana (Pharmaceutics): Preparation of Ayurvedic medicines.",
+          "Rog Nidan & Vikriti Vigyan (Pathology): Diagnostic techniques and disease pathology.",
+          "Swasthavritta & Yoga (Preventive & Social Medicine): Focuses on lifestyle, dietetics, and yoga.",
+          "Agad Tantra & Vidhi Vaidyaka (Toxicology & Medical Jurisprudence): Toxicology and forensic medicine.",
+          "Kayachikitsa (General Medicine): Internal medicine.",
+          "Panchakarma (Detoxification/Therapeutic Procedures): Five detoxification techniques.",
+          "Shalya Tantra (Surgery): Surgical methods in Ayurveda.",
+          "Shalakya Tantra (ENT & Ophthalmology): Diseases of head and neck, eyes, ear, nose, and throat.",
+          "Kaumarbhritya (Pediatrics): Pediatric care, nutrition, and obstetrics.",
+          "Prasuti Tantra & Stri Roga (Gynecology & Obstetrics): Reproductive health and women's diseases.",
+        ],
+      },
+    ],
+  },
+  {
+    course: "BHMS",
+    departments: [
+      {
+        department: "List of Departments in a BHMS",
+        labs: [
+          "Anatomy (including Histology and Embryology)",
+          "Physiology and Biochemistry",
+          "Homoeopathic Pharmacy (including Research Methodology)",
+          "Pathology and Microbiology",
+          "Forensic Medicine and Toxicology",
+          "Community Medicine (PSM)",
+          "Practice of Medicine",
+          "Surgery (including ENT, Ophthalmology, and Dentistry)",
+          "Gynecology & Obstetrics",
+          "Homoeopathic Materia Medica",
+          "Organon of Medicine (with Homoeopathic Philosophy)",
+          "Repertory",
+          "Case Taking (often integrated with Repertory or Organon)",
+          "Fundamentals of Yoga",
+        ],
+      },
+    ],
+  },
+  {
+    course: "BUMS",
+    departments: [
+      {
+        department: "Core Pre-Clinical & Para-Clinical Departments",
+        labs: [
+          "Kulliyat-e-Tibb (Basic Principles of Unani Medicine): Foundation of Unani medicine.",
+          "Tashreeh-ul-Badan (Anatomy): Study of human body structure.",
+          "Munafe-ul-Aza (Physiology): Study of body function.",
+          "Ilmul Advia (Pharmacology): Study of Unani drugs and herbs.",
+          "Mahiyatul Amraz (Pathology): Study of disease processes.",
+          "Ilmul Saidla (Unani Pharmacy): Preparation of medicine.",
+          "Tahaffuzi wa Samaji Tib (Preventive & Community Medicine): Public health and preventive care",
+        ],
+      },
+      {
+        department: "Clinical Departments (Specialties)",
+        labs: [
+          "Moalijat (General Medicine): Internal medicine based on Unani principles.",
+          "Jarahat (Surgery): Surgical techniques and procedures.",
+          "Ilaj bit Tadbeer (Regimental Therapy): Specialized therapies like cupping, leeching, and massage.",
+          "Amraz-e-Niswan wa Qabala (Obstetrics & Gynecology): Women's health and childbirth.",
+          "Ilmul Atfal (Paediatrics): Children's diseases.",
+          "Ain-Uzn-Anf-Halq (Ophthalmology & ENT): Eye, Ear, Nose, and Throat diseases.",
+          "Amraz-e-Jild wa Tazeeniyat (Dermatology and Cosmetology): Skin care and treatments.",
+        ],
+      },
+    ],
+  },
+  {
+    course: "BVSc & AH",
+    departments: [
+      {
+        department: "List of Departments in a BVSc & AH",
+        labs: [
+          "Veterinary Anatomy",
+          "Veterinary Physiology & Biochemistry (Often combined or separate)",
+          "Veterinary Pharmacology & Toxicology",
+          "Veterinary Parasitology",
+          "Veterinary Microbiology",
+          "Veterinary Pathology",
+          "Veterinary Public Health & Epidemiology",
+          "Animal Nutrition",
+          "Animal Genetics & Breeding",
+          "Livestock Production & Management",
+          "Livestock Products Technology",
+          "Veterinary Gynaecology & Obstetrics",
+          "Veterinary Surgery & Radiology",
+          "Veterinary Medicine",
+          "Veterinary & Animal Husbandry Extension Education",
+          "Veterinary Clinical Complex (VCC) (Clinical training)",
+          "Instructional Livestock Farm Complex (ILFC) (Farm management training)",
+        ],
+      },
+    ],
+  },
+  {
+    course: "NURSING",
+    departments: [
+      {
+        department: "Core Nursing Departments (Standard Checklist)",
+        labs: [
+          "Department of Medical-Surgical Nursing: Focuses on adult care, acute care, and specialties like oncology, neurology, or cardiology.",
+          "Department of Obstetrical and Gynaecological Nursing (Maternity): Covers maternal and newborn health.",
+          "Department of Child Health Nursing (Paediatric): Focuses on care for children and neonates.",
+          "Department of Community Health Nursing (Public Health): Emphasizes community-based health services and preventative care.",
+          "Department of Mental Health Nursing (Psychiatric): Deals with psychiatric care and rehabilitation.",
+          "Department of Nursing Foundation: Focuses on the basics of nursing care, ethics, and fundamental skills.",
+          "Department of Nursing Education/Administration: Focuses on teaching methods and management roles within healthcare.",
+        ],
+      },
+      {
+        department: "Required Infrastructure Labs",
+        labs: [
+          "Nursing Foundation Laboratory",
+          "Community Health Nursing & Nutrition Laboratory",
+          "Advance Nursing Skill Laboratory",
+          "Computer Laboratory",
+          "OBG & Paediatric Laboratory",
+          "Pre-Clinical Sciences Laboratory (Anatomy, Microbiology, etc.)",
+        ],
+      },
+    ],
+  },
+  {
+    course: "PHARMACY",
+    departments: [
+      {
+        department: "Mandatory Departments & Laboratory List",
+        labs: [
+          "Department of Pharmaceutics",
+          "Labs Required: ~3 Laboratories",
+          "Focus: Formulation development, tablets, capsules, liquids.",
+          "Department of Pharmaceutical Chemistry",
+          "Labs Required: ~3 Laboratories",
+          "Focus: Medicinal chemistry, organic chemistry, inorganic chemistry.",
+          "Department of Pharmacology",
+          "Labs Required: ~3 Laboratories",
+          "Focus: Anatomy, Physiology, Pharmacology, Screening methods.",
+          "Department of Pharmacognosy",
+          "Labs Required: ~2 Laboratories",
+          "Focus: Natural products, herbal drug technology.",
+          "Department of Pharmaceutical Analysis",
+          "Labs Required: ~1 Laboratory",
+          "Focus: Quality assurance, analytical techniques.",
+          "Department of Pharmaceutical Biotechnology",
+          "Labs Required: ~1 Laboratory (including Aseptic Room)",
+          "Focus: Microbiology, cell culture.",
+        ],
+      },
+      {
+        department: "Mandatory Specialized Rooms",
+        labs: [
+          "Machine Room: For pilot-scale production (tablet punching, coating, etc.).",
+          "Central Instrument Room: Houses advanced equipment like HPLC, UV spectrophotometer.",
+          "Preparation Rooms: Demarcated area for each lab",
+        ],
+      },
+    ],
+  },
+];
+
+export default ClinicalExcilenceLab;

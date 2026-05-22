@@ -36,6 +36,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useForm } from "react-hook-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
+import { TableStateRow } from "@/components/content-manager/table-state-row";
+
+type CounselorFormValues = {
+    name: string;
+    designation: string;
+    profile: string;
+    description: string;
+};
 
 export default function CounselorsPage() {
     const [counselors, setCounselors] = useState<Counselor[]>([]);
@@ -50,7 +58,7 @@ export default function CounselorsPage() {
 
     const debouncedSearch = useDebounce(search, 500);
 
-    const form = useForm({
+    const form = useForm<CounselorFormValues>({
         defaultValues: {
             name: "",
             designation: "",
@@ -103,7 +111,7 @@ export default function CounselorsPage() {
         setIsDialogOpen(true);
     };
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: CounselorFormValues) => {
         try {
             if (editingCounselor) {
                 await counselorService.update(editingCounselor.id, data);
@@ -136,12 +144,15 @@ export default function CounselorsPage() {
         <>
             <ListingLayout
                 title="Counselor"
+                description="Manage counselor profiles shown across the platform, including role, avatar, and summary."
                 count={meta?.total || 0}
                 onCreateClick={() => handleOpenDialog()}
+                createLabel="Add counselor"
                 onSearchChange={(val) => {
                     setSearch(val);
                     setCurrentPage(1);
                 }}
+                searchPlaceholder="Search counselors..."
             >
                 <Table>
                     <TableHeader className="bg-card">
@@ -154,14 +165,7 @@ export default function CounselorsPage() {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-center py-10">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                        <span className="text-muted-foreground">Loading...</span>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
+                            <TableStateRow colSpan={4} isLoading emptyLabel="" />
                         ) : (counselors?.length || 0) > 0 ? (
                             counselors.map(c => (
                                 <TableRow key={c.id} className="group hover:bg-muted/50 border-b border-border/50">
@@ -201,11 +205,7 @@ export default function CounselorsPage() {
                                 </TableRow>
                             ))
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground font-medium">
-                                    No counselors found.
-                                </TableCell>
-                            </TableRow>
+                            <TableStateRow colSpan={4} emptyLabel="No counselors found." />
                         )}
                     </TableBody>
                 </Table>
@@ -232,7 +232,7 @@ export default function CounselorsPage() {
                             <FormField
                                 control={form.control}
                                 name="name"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-foreground">Name</FormLabel>
                                         <FormControl>
@@ -245,7 +245,7 @@ export default function CounselorsPage() {
                             <FormField
                                 control={form.control}
                                 name="designation"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-foreground">Designation</FormLabel>
                                         <FormControl>
@@ -258,7 +258,7 @@ export default function CounselorsPage() {
                             <FormField
                                 control={form.control}
                                 name="profile"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-foreground">Profile Image URL</FormLabel>
                                         <FormControl>
@@ -271,7 +271,7 @@ export default function CounselorsPage() {
                             <FormField
                                 control={form.control}
                                 name="description"
-                                render={({ field }: { field: any }) => (
+                                render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="text-foreground">Description</FormLabel>
                                         <FormControl>
