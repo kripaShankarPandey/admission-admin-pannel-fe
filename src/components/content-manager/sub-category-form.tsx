@@ -33,13 +33,14 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 interface SubCategoryFormProps {
-    courseId?: number;
+    courseId?: string | number;
 }
 
 export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
     const router = useRouter();
     const [allCategories, setAllCategories] = useState<CourseCategory[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [actualId, setActualId] = useState<number | null>(null);
 
     const form = useForm({
         defaultValues: {
@@ -97,6 +98,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
         if (courseId) {
             setIsLoading(true);
             subCourseCategoryService.getOne(courseId).then((res) => {
+                setActualId(res.id);
                 let details = {};
                 try {
                     details = JSON.parse(res.details || "{}");
@@ -168,8 +170,8 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                 details: JSON.stringify(detailsData),
             };
 
-            if (courseId) {
-                await subCourseCategoryService.update(courseId, payload);
+            if (actualId) {
+                await subCourseCategoryService.update(actualId, payload);
                 toast.success("Course updated successfully");
             } else {
                 await subCourseCategoryService.create(payload);
@@ -191,7 +193,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{courseId ? "Edit Course Details" : "Create New Course"}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{courseId ? `Edit Course: ${watch("name") || "Loading..."}` : "Create New Course"}</h1>
                     <p className="text-sm text-muted-foreground">Fill in the comprehensive details for this course page.</p>
                 </div>
             </div>

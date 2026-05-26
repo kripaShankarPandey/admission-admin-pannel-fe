@@ -53,7 +53,8 @@ export default function SubCategoriesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
-    const pageSize = 10;
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+    const pageSize = 20;
 
     const debouncedSearch = useDebounce(search, 500);
 
@@ -64,7 +65,8 @@ export default function SubCategoriesPage() {
             const response = await subCourseCategoryService.getAll({
                 page: currentPage,
                 pageSize,
-                search: debouncedSearch || undefined
+                search: debouncedSearch || undefined,
+                courseCategoryId: selectedCategoryId !== "all" ? Number(selectedCategoryId) : undefined
             });
             setSubCategories(response.data || []);
             setMeta(response?.meta?.pagination || null);
@@ -75,7 +77,7 @@ export default function SubCategoriesPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentPage, debouncedSearch]);
+    }, [currentPage, debouncedSearch, selectedCategoryId]);
 
     const fetchAllCategories = async () => {
         try {
@@ -110,6 +112,8 @@ export default function SubCategoriesPage() {
         }
     };
 
+    const hasActiveFilters = selectedCategoryId !== "all";
+
     return (
         <>
             <ListingLayout
@@ -120,6 +124,42 @@ export default function SubCategoriesPage() {
                     setSearch(val);
                     setCurrentPage(1);
                 }}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Select
+                            value={selectedCategoryId}
+                            onValueChange={(val) => {
+                                setSelectedCategoryId(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="h-9 w-[190px] bg-background border-border/50 text-xs font-semibold rounded-lg">
+                                <SelectValue placeholder="All Disciplines" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Disciplines</SelectItem>
+                                {allCategories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                                        {cat.courses_category_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {hasActiveFilters && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setSelectedCategoryId("all");
+                                    setCurrentPage(1);
+                                }}
+                                className="h-9 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded-lg"
+                            >
+                                Reset
+                            </Button>
+                        )}
+                    </div>
+                }
             >
                 <Table>
                     <TableHeader className="bg-card">
@@ -127,6 +167,8 @@ export default function SubCategoriesPage() {
                             <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Course Name</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Parent Discipline</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Level</TableHead>
+                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Duration</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Specializations</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                             <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -137,7 +179,7 @@ export default function SubCategoriesPage() {
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-10">
+                                <TableCell colSpan={8} className="text-center py-10">
                                     <div className="flex items-center justify-center gap-2">
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                         <span className="text-muted-foreground">Loading...</span>
@@ -145,57 +187,74 @@ export default function SubCategoriesPage() {
                                 </TableCell>
                             </TableRow>
                         ) : (subCategories?.length || 0) > 0 ? (
-                            subCategories.map((sub) => (
-                                <TableRow key={sub.id} className="group hover:bg-muted/50 border-b border-border/50">
-                                    <TableCell className="text-muted-foreground font-medium text-[13px]">#{sub.id}</TableCell>
-                                    <TableCell className="font-semibold text-foreground text-[13px]">
-                                        {sub?.sub_course_category_name || "Unknown"}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-[13px]">
-                                        {sub?.courseCategory?.courses_category_name || "N/A"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1.5 text-muted-foreground text-[13px]">
-                                            {sub._count?.courseCategorySpecializations || 0} items
-                                            <ChevronDown className="h-3 w-3" />
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        {sub?.publishedAt ? (
-                                            <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
-                                                Published
+                            subCategories.map((sub) => {
+                                const details = (() => {
+                                    try {
+                                        return sub.details ? JSON.parse(sub.details) : {};
+                                    } catch {
+                                        return {};
+                                    }
+                                })();
+                                return (
+                                    <TableRow key={sub.id} className="group hover:bg-muted/50 border-b border-border/50">
+                                        <TableCell className="text-muted-foreground font-medium text-[13px]">#{sub.id}</TableCell>
+                                        <TableCell className="font-semibold text-foreground text-[13px]">
+                                            {sub?.sub_course_category_name || "Unknown"}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground text-[13px]">
+                                            {sub?.courseCategory?.courses_category_name || "N/A"}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground text-[13px]">
+                                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10 shadow-none text-[10px] font-bold uppercase py-0.5 px-2">
+                                                {details.courseLevel || "N/A"}
                                             </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
-                                                Draft
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => router.push(`/courses/${sub.id}`)}
-                                                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <Edit className="h-4 w-4 text-muted-foreground" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 w-8 p-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => handleDelete(sub.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground text-[13px] font-medium">
+                                            {details.duration || "N/A"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5 text-muted-foreground text-[13px]">
+                                                {sub._count?.courseCategorySpecializations || 0} items
+                                                <ChevronDown className="h-3 w-3" />
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {sub?.publishedAt ? (
+                                                <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
+                                                    Published
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
+                                                    Draft
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/courses/${sub.slug}`)}
+                                                    className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <Edit className="h-4 w-4 text-muted-foreground" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => handleDelete(sub.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground font-medium">
+                                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground font-medium">
                                     No courses found.
                                 </TableCell>
                             </TableRow>

@@ -1,9 +1,10 @@
 import { SubCategoryForm } from "@/components/content-manager/sub-category-form";
 
-export default function EditCoursePage({ params }: { params: { id: string } }) {
+export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     return (
         <div className="p-6">
-            <SubCategoryForm courseId={parseInt(params.id)} />
+            <SubCategoryForm courseId={id} />
         </div>
     );
 }

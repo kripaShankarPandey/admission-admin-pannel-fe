@@ -33,8 +33,8 @@ export const subCourseCategoryService = {
     return response.data;
   },
 
-  async getOne(id: number) {
-    const response = await apiClient.get<SubCourseCategory>(`/sub-course-category/${id}`);
+  async getOne(idOrSlug: number | string) {
+    const response = await apiClient.get<SubCourseCategory>(`/sub-course-category/${idOrSlug}`);
     return response.data;
   },
 

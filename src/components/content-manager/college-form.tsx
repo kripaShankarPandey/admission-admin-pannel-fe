@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -10,9 +10,10 @@ import {
   type FieldErrors,
 } from "react-hook-form";
 import { College } from "@/services/college-service";
-import { allCoursesData } from "@/data/allCoursesData";
 import { ClinicalExcilenceLab } from "@/data/ClinicalExcilenceLab";
 import { cityService, type City } from "@/services/city-service";
+import { courseCategoryService, type CourseCategory } from "@/services/course-category-service";
+import { subCourseCategoryService, type SubCourseCategory } from "@/services/sub-course-category-service";
 import {
   reachUsService,
   type ReachUsLocation,
@@ -35,6 +36,7 @@ import {
   BookOpen,
   Building2,
   ClipboardList,
+  Clock,
   GraduationCap,
   Hospital,
   ImageIcon,
@@ -46,6 +48,7 @@ import {
   Star,
   Trash2,
   Upload,
+  Users,
   Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -99,15 +102,17 @@ interface CourseRow {
   course: string;
   duration: string;
   course_level: CourseLevel | "";
-  total_intake: CourseValueEntry[];
+  total_intake: string;
+  pg_seats: string;
+  ss_seats: string;
   intake_total: CourseValueEntry[];
   fee: CourseValueEntry[];
-  pg_seats: CourseValueEntry[];
-  ss_seats: CourseValueEntry[];
+  seats: CourseValueEntry[];
 }
 
 interface CourseValueEntry {
   value: string;
+  currency?: string;
 }
 
 interface RoundCutoff {
@@ -334,6 +339,63 @@ function RepeatableRow({
   );
 }
 
+function renderCourseLevelBadge(level: string) {
+  switch (level) {
+    case "UG":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 border border-emerald-500/20 uppercase tracking-wider">
+          UG
+        </span>
+      );
+    case "PG":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 border border-blue-500/20 uppercase tracking-wider">
+          PG
+        </span>
+      );
+    case "Diploma":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 border border-amber-500/20 uppercase tracking-wider">
+          Diploma
+        </span>
+      );
+    case "Doctorate":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-2 py-0.5 text-[10px] font-bold text-purple-600 border border-purple-500/20 uppercase tracking-wider">
+          Doctorate
+        </span>
+      );
+    case "Certificate":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 text-[10px] font-bold text-rose-600 border border-rose-500/20 uppercase tracking-wider">
+          Cert
+        </span>
+      );
+    case "Other":
+      return (
+        <span className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground border border-border/60 uppercase tracking-wider">
+          Other
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+function readSingleSeatValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    if (value.length > 0) {
+      const first = value[0];
+      if (first && typeof first === "object") {
+        return readString((first as Record<string, unknown>).value);
+      }
+      return readString(first);
+    }
+    return "";
+  }
+  return readString(value);
+}
+
 function CourseSeatDetailsGroup({
   control,
   register,
@@ -347,61 +409,44 @@ function CourseSeatDetailsGroup({
     control,
     name: `courses.${courseIndex}.intake_total`,
   });
-  const totalIntakeFields = useFieldArray({
-    control,
-    name: `courses.${courseIndex}.total_intake`,
-  });
   const feeFields = useFieldArray({
     control,
     name: `courses.${courseIndex}.fee`,
   });
-  const intakeSeatFields = useFieldArray({
+  const seatsFields = useFieldArray({
     control,
-    name: `courses.${courseIndex}.pg_seats`,
-  });
-  const ssSeatFields = useFieldArray({
-    control,
-    name: `courses.${courseIndex}.ss_seats`,
+    name: `courses.${courseIndex}.seats`,
   });
 
   const intakeValues = useWatch({
     control,
     name: `courses.${courseIndex}.intake_total`,
   });
+  const feeValues = useWatch({
+    control,
+    name: `courses.${courseIndex}.fee`,
+  });
   const rowCount = Math.max(
-    totalIntakeFields.fields.length,
     intakeFields.fields.length,
     feeFields.fields.length,
-    intakeSeatFields.fields.length,
-    ssSeatFields.fields.length,
+    seatsFields.fields.length,
     1,
   );
 
   return (
-    <div className="space-y-2 xl:col-span-3">
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr_1fr_1fr_auto] gap-2 items-start">
-        <FL>Total Intake</FL>
+    <div className="space-y-2 col-span-full mt-2 border-t border-border/20 pt-4">
+      <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_auto] gap-3 items-start px-1">
         <FL>Intake Type</FL>
         <FL>Fee Str</FL>
-        <FL>No of PG Seat</FL>
-        <FL>No of SS Seat</FL>
+        <FL>Seats</FL>
         <span />
       </div>
       <div className="space-y-2">
         {Array.from({ length: rowCount }).map((_, nestedIndex) => (
           <div
             key={`course-${courseIndex}-detail-${nestedIndex}`}
-            className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_1fr_1fr_1fr_auto] gap-2 items-center"
+            className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_auto] gap-3 items-center bg-muted/10 p-2 rounded-lg border border-border/30 hover:border-border/60 transition-colors"
           >
-            <div>
-              <Input
-                {...register(
-                  `courses.${courseIndex}.total_intake.${nestedIndex}.value`,
-                )}
-                placeholder="150"
-                className="h-8 bg-card border-border/40 text-sm"
-              />
-            </div>
             <div>
               <Select
                 value={intakeValues?.[nestedIndex]?.value ?? ""}
@@ -412,7 +457,7 @@ function CourseSeatDetailsGroup({
                   )
                 }
               >
-                <SelectTrigger className="h-8 bg-card border-border/40 text-sm">
+                <SelectTrigger className="h-9 bg-card border-border/60 text-sm">
                   <SelectValue placeholder="Select intake type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -424,32 +469,39 @@ function CourseSeatDetailsGroup({
                 </SelectContent>
               </Select>
             </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                INR
-              </span>
+            <div className="relative flex items-center">
+              <div className="absolute left-1 z-10">
+                <Select
+                  value={feeValues?.[nestedIndex]?.currency ?? "INR"}
+                  onValueChange={(val) =>
+                    feeFields.update(
+                      nestedIndex,
+                      createCourseValueEntry(feeValues?.[nestedIndex]?.value ?? "", val),
+                    )
+                  }
+                >
+                  <SelectTrigger className="h-7 w-14 bg-transparent border-0 shadow-none text-xs font-bold text-muted-foreground hover:bg-muted/40 transition-colors focus:ring-0 focus-visible:ring-0 pl-2 pr-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[80px]">
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="USD">$</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Input
                 {...register(`courses.${courseIndex}.fee.${nestedIndex}.value`)}
                 placeholder="25000"
-                className="h-8 bg-card border-border/40 text-sm pl-10"
+                className="h-9 bg-card border-border/60 text-sm pl-16 w-full"
               />
             </div>
             <div>
               <Input
                 {...register(
-                  `courses.${courseIndex}.pg_seats.${nestedIndex}.value`,
+                  `courses.${courseIndex}.seats.${nestedIndex}.value`,
                 )}
-                placeholder="45"
-                className="h-8 bg-card border-border/40 text-sm"
-              />
-            </div>
-            <div>
-              <Input
-                {...register(
-                  `courses.${courseIndex}.ss_seats.${nestedIndex}.value`,
-                )}
-                placeholder="12"
-                className="h-8 bg-card border-border/40 text-sm"
+                placeholder="150"
+                className="h-9 bg-card border-border/60 text-sm"
               />
             </div>
 
@@ -457,35 +509,29 @@ function CourseSeatDetailsGroup({
               type="button"
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+              className="h-9 w-9 shrink-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
               onClick={() => {
                 if (rowCount === 1) {
-                  totalIntakeFields.update(0, createCourseValueEntry());
                   intakeFields.update(0, createCourseValueEntry());
                   feeFields.update(0, createCourseValueEntry());
-                  intakeSeatFields.update(0, createCourseValueEntry());
-                  ssSeatFields.update(0, createCourseValueEntry());
+                  seatsFields.update(0, createCourseValueEntry());
                   return;
                 }
 
-                totalIntakeFields.remove(nestedIndex);
                 intakeFields.remove(nestedIndex);
                 feeFields.remove(nestedIndex);
-                intakeSeatFields.remove(nestedIndex);
-                ssSeatFields.remove(nestedIndex);
+                seatsFields.remove(nestedIndex);
               }}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
         <AddRowButton
           onClick={() => {
-            totalIntakeFields.append(createCourseValueEntry());
             intakeFields.append(createCourseValueEntry());
-            intakeSeatFields.append(createCourseValueEntry());
             feeFields.append(createCourseValueEntry());
-            ssSeatFields.append(createCourseValueEntry());
+            seatsFields.append(createCourseValueEntry());
           }}
           label="Add Intake Row"
         />
@@ -528,8 +574,8 @@ function defaultGovtAiqCutoff(value?: Partial<GovtAiqCutoff>): GovtAiqCutoff {
   };
 }
 
-function createCourseValueEntry(value = ""): CourseValueEntry {
-  return { value };
+function createCourseValueEntry(value = "", currency = "INR"): CourseValueEntry {
+  return { value, currency };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -622,6 +668,7 @@ function normalizeCourseValueEntries(value: unknown): CourseValueEntry[] {
         if (entry && typeof entry === "object") {
           return createCourseValueEntry(
             readString((entry as { value?: unknown }).value),
+            readString((entry as { currency?: unknown }).currency) || "INR",
           );
         }
 
@@ -644,11 +691,12 @@ function normalizeCourseRows(value: unknown): CourseRow[] {
         course: "",
         duration: "",
         course_level: "",
-        total_intake: [createCourseValueEntry()],
+        total_intake: "",
+        pg_seats: "",
+        ss_seats: "",
         intake_total: [createCourseValueEntry()],
         fee: [createCourseValueEntry()],
-        pg_seats: [createCourseValueEntry()],
-        ss_seats: [createCourseValueEntry()],
+        seats: [createCourseValueEntry()],
       },
     ];
   }
@@ -658,24 +706,20 @@ function normalizeCourseRows(value: unknown): CourseRow[] {
     const intakeEntries = normalizeCourseValueEntries(
       (record as { intake_total?: unknown }).intake_total,
     );
-    const totalIntakeEntries = normalizeCourseValueEntries(
-      (record as { total_intake?: unknown }).total_intake,
-    );
     const feeEntries = normalizeCourseValueEntries(
       (record as { fee?: unknown }).fee,
     );
-    const pgSeatEntries = normalizeCourseValueEntries(
-      (record as { pg_seats?: unknown }).pg_seats,
+    
+    const rawSeats = (record as { seats?: unknown }).seats;
+    const rawTotalIntake = (record as { total_intake?: unknown }).total_intake;
+    const seatsEntries = normalizeCourseValueEntries(
+      rawSeats !== undefined ? rawSeats : (Array.isArray(rawTotalIntake) ? rawTotalIntake : undefined)
     );
-    const ssSeatEntries = normalizeCourseValueEntries(
-      (record as { ss_seats?: unknown }).ss_seats,
-    );
+
     const entryCount = Math.max(
-      totalIntakeEntries.length,
       intakeEntries.length,
       feeEntries.length,
-      pgSeatEntries.length,
-      ssSeatEntries.length,
+      seatsEntries.length,
       1,
     );
 
@@ -685,20 +729,17 @@ function normalizeCourseRows(value: unknown): CourseRow[] {
       course_level: readString(
         (record as { course_level?: unknown }).course_level,
       ) as CourseLevel | "",
-      total_intake: Array.from({ length: entryCount }, (_, index) => {
-        return totalIntakeEntries[index] ?? createCourseValueEntry();
-      }),
+      total_intake: readSingleSeatValue((record as { total_intake?: unknown }).total_intake),
+      pg_seats: readSingleSeatValue((record as { pg_seats?: unknown }).pg_seats),
+      ss_seats: readSingleSeatValue((record as { ss_seats?: unknown }).ss_seats),
       intake_total: Array.from({ length: entryCount }, (_, index) => {
         return intakeEntries[index] ?? createCourseValueEntry();
       }),
       fee: Array.from({ length: entryCount }, (_, index) => {
         return feeEntries[index] ?? createCourseValueEntry();
       }),
-      pg_seats: Array.from({ length: entryCount }, (_, index) => {
-        return pgSeatEntries[index] ?? createCourseValueEntry();
-      }),
-      ss_seats: Array.from({ length: entryCount }, (_, index) => {
-        return ssSeatEntries[index] ?? createCourseValueEntry();
+      seats: Array.from({ length: entryCount }, (_, index) => {
+        return seatsEntries[index] ?? createCourseValueEntry();
       }),
     };
   });
@@ -747,27 +788,10 @@ const ADMISSION_COUNSELLING_OPTIONS = [
 ] as const;
 
 const EXAM_ACCEPTED_OPTIONS = [
-  "JEE Mains",
-  "Jee Advanced",
-  "WBJEE",
-  "COMDEK",
-  "MHTCET",
-  "OJEE",
-  "ICAR",
-  "IMU",
-  "NCHMCT",
-  "CLAT",
-  "CAT",
-  "MAT",
-  "XAT",
-  "GMAT",
-  "CMAT",
   "NEET UG",
   "NEET PG",
-  "NIFT",
-  "CUET",
-  "VITJEE",
-  "BITSAT",
+  "ICAR",
+  
 ] as const;
 
 const INTAKE_TOTAL_OPTIONS = [
@@ -778,6 +802,7 @@ const INTAKE_TOTAL_OPTIONS = [
   "Semi govt",
   "Goverment",
   "AIQ",
+  "Minority",
 ] as const;
 
 const YES_NO_OPTIONS = ["Yes", "No"] as const;
@@ -788,17 +813,40 @@ const clinicalExcilenceLabOptions =
 export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   const [availableCities, setAvailableCities] = useState<CityOption[]>([]);
   const [airportOptions, setAirportOptions] = useState<ReachUsLocation[]>([]);
+  const [railwayOptions, setRailwayOptions] = useState<ReachUsLocation[]>([]);
+  const [busStationOptions, setBusStationOptions] = useState<ReachUsLocation[]>([]);
   const [isLoadingAirports, setIsLoadingAirports] = useState(false);
+  const [isLoadingRailway, setIsLoadingRailway] = useState(false);
+  const [isLoadingBusStation, setIsLoadingBusStation] = useState(false);
+
+  const [dbDisciplines, setDbDisciplines] = useState<CourseCategory[]>([]);
+  const [dbCourses, setDbCourses] = useState<SubCourseCategory[]>([]);
+
+  useEffect(() => {
+    const fetchDisciplinesAndCourses = async () => {
+      try {
+        const [catsRes, coursesRes] = await Promise.all([
+          courseCategoryService.getAll({ page: 1, pageSize: 100 }),
+          subCourseCategoryService.getAll({ page: 1, pageSize: 1000 }),
+        ]);
+        setDbDisciplines(catsRes.data || []);
+        setDbCourses(coursesRes.data || []);
+      } catch (error) {
+        console.error("Error fetching disciplines and courses:", error);
+      }
+    };
+    fetchDisciplinesAndCourses();
+  }, []);
 
   const disciplineOptions = useMemo(
     () =>
-      allCoursesData.map((item: { discipline: string }) => ({
-        label: item.discipline,
-        value: item.discipline,
+      dbDisciplines.map((cat) => ({
+        label: cat.courses_category_name,
+        value: cat.courses_category_name,
       })),
-    [],
+    [dbDisciplines],
   );
-  const defaultValues: CollegeFormValues = {
+  const parsedDefaultValues = useMemo<CollegeFormValues>(() => ({
     college_name: readString(initialData?.college_name),
     university_name: readString(
       (initialData as Partial<College> & Record<string, unknown>)
@@ -1021,9 +1069,15 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       (initialData as Partial<College> & Record<string, unknown>)
         ?.government_college_aiq_cutoff as Partial<GovtAiqCutoff>,
     ),
-  };
+  }), [initialData]);
 
-  const form = useForm<CollegeFormValues>({ defaultValues });
+  const form = useForm<CollegeFormValues>({ defaultValues: parsedDefaultValues });
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset(parsedDefaultValues);
+    }
+  }, [initialData, form, parsedDefaultValues]);
   const watchedCourses = useWatch({ control: form.control, name: "courses" });
   const collegeName = useWatch({ control: form.control, name: "college_name" });
   const featuredImageValue = useWatch({
@@ -1042,6 +1096,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   });
   const naacValue = useWatch({ control: form.control, name: "naac" });
   const nbaValue = useWatch({ control: form.control, name: "nba" });
+  const isFeaturedValue = useWatch({ control: form.control, name: "featured" });
   const admissionCounsellingValue = useWatch({
     control: form.control,
     name: "admission_counselling",
@@ -1054,9 +1109,34 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     control: form.control,
     name: "discipline",
   });
+
+  const parsedDetails = useMemo(() => {
+    return dbCourses.reduce((acc, c) => {
+      try {
+        acc[c.id] = JSON.parse(c.details || "{}");
+      } catch {
+        acc[c.id] = {};
+      }
+      return acc;
+    }, {} as Record<number, any>);
+  }, [dbCourses]);
+
+  const filteredCourses = useMemo(() => {
+    if (!disciplineValue) return [];
+    return dbCourses.filter(
+      (course) =>
+        course.courseCategory?.courses_category_name?.toLowerCase() ===
+        disciplineValue.toLowerCase(),
+    );
+  }, [dbCourses, disciplineValue]);
+
   const internshipValue = useWatch({
     control: form.control,
     name: "internship",
+  });
+  const exchangeProgramValue = useWatch({
+    control: form.control,
+    name: "exchange_program",
   });
   const sponsorshipValue = useWatch({
     control: form.control,
@@ -1095,6 +1175,14 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   const selectedAirportValue = useWatch({
     control: form.control,
     name: "airport",
+  });
+  const selectedRailwayValue = useWatch({
+    control: form.control,
+    name: "railway_station",
+  });
+  const selectedBusStandValue = useWatch({
+    control: form.control,
+    name: "bus_stand",
   });
   const watchedClinicalExcilenceLabs = useWatch({
     control: form.control,
@@ -1168,40 +1256,64 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   }, [form]);
 
   useEffect(() => {
-    const fetchAirports = async () => {
+    const fetchReachUsOptions = async () => {
       if (!selectedStateValue) {
         setAirportOptions([]);
+        setRailwayOptions([]);
+        setBusStationOptions([]);
         form.setValue("airport", "");
+        form.setValue("railway_station", "");
+        form.setValue("bus_stand", "");
         return;
       }
 
+      const baseParams = { state: selectedStateValue, page: 1, pageSize: 500 };
+
       try {
         setIsLoadingAirports(true);
-        const response = await reachUsService.getAll({
-          category: "airport",
-          state: selectedStateValue,
-          page: 1,
-          pageSize: 500,
-        });
-        const airports = response.data || [];
-        setAirportOptions(airports);
+        setIsLoadingRailway(true);
+        setIsLoadingBusStation(true);
 
+        const [airportRes, railwayRes, busRes] = await Promise.all([
+          reachUsService.getAll({ ...baseParams, category: "airport" }),
+          reachUsService.getAll({ ...baseParams, category: "railway-station" }),
+          reachUsService.getAll({ ...baseParams, category: "bus-station" }),
+        ]);
+
+        const airports = airportRes.data || [];
+        const railways = railwayRes.data || [];
+        const buses = busRes.data || [];
+
+        setAirportOptions(airports);
+        setRailwayOptions(railways);
+        setBusStationOptions(buses);
+
+        // Clear stale values if they no longer exist in new state
         const currentAirport = form.getValues("airport");
-        if (
-          currentAirport &&
-          !airports.some((airport) => airport.name === currentAirport)
-        ) {
+        if (currentAirport && !airports.some((a) => a.name === currentAirport)) {
           form.setValue("airport", "");
         }
+        const currentRailway = form.getValues("railway_station");
+        if (currentRailway && !railways.some((r) => r.name === currentRailway)) {
+          form.setValue("railway_station", "");
+        }
+        const currentBus = form.getValues("bus_stand");
+        if (currentBus && !buses.some((b) => b.name === currentBus)) {
+          form.setValue("bus_stand", "");
+        }
       } catch (error) {
-        console.error("Error fetching airports:", error);
+        console.error("Error fetching reach-us options:", error);
         setAirportOptions([]);
+        setRailwayOptions([]);
+        setBusStationOptions([]);
       } finally {
         setIsLoadingAirports(false);
+        setIsLoadingRailway(false);
+        setIsLoadingBusStation(false);
       }
     };
 
-    fetchAirports();
+    fetchReachUsOptions();
   }, [form, selectedStateValue]);
 
   useEffect(() => {
@@ -1248,7 +1360,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   }, [availableCities, selectedStateValue]);
 
   useEffect(() => {
-    if (!selectedStateValue || !selectedCityValue) return;
+    if (!selectedStateValue || !selectedCityValue || availableCities.length === 0) return;
 
     const hasSelectedCity = citiesForSelectedState.some(
       (city) =>
@@ -1259,7 +1371,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     if (!hasSelectedCity) {
       form.setValue("city", "");
     }
-  }, [citiesForSelectedState, form, selectedCityValue, selectedStateValue]);
+  }, [citiesForSelectedState, availableCities, form, selectedCityValue, selectedStateValue]);
 
   useEffect(() => {
     if (
@@ -1485,27 +1597,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                   <SelectItem value="DEEMED UNIVERSITY">
                     DEEMED UNIVERSITY
                   </SelectItem>
-                  <SelectItem value="STATE TECHANICAL UNIVERSITY">
-                    STATE TECHANICAL UNIVERSITY
-                  </SelectItem>
-                  <SelectItem value="STATE PRIVATE UNIVERSITY">
-                    STATE PRIVATE UNIVERSITY
-                  </SelectItem>
-                  <SelectItem value="IITS">IITS</SelectItem>
-                  <SelectItem value="NITS">NITS</SelectItem>
-                  <SelectItem value="GFTI/CFTI">GFTI/CFTI</SelectItem>
-                  <SelectItem value="IIITS">IIITS</SelectItem>
-                  <SelectItem value="STATE GOV UNIVERSITY">
-                    STATE GOV UNIVERSITY
-                  </SelectItem>
-                  <SelectItem value="CENTRAL UNIVERSITY">
-                    CENTRAL UNIVERSITY
-                  </SelectItem>
-                  <SelectItem value="IIM">IIM</SelectItem>
-                  <SelectItem value="NLU">NLU</SelectItem>
+                  <SelectItem value="ESIC">ESIC</SelectItem>
+                  <SelectItem value="AFMC">AFMC</SelectItem>
                   <SelectItem value="AIIMS">AIIMS</SelectItem>
-                  <SelectItem value="ICAR">ICAR</SelectItem>
-                  <SelectItem value="IMU Campus">IMU Campus</SelectItem>
+                  <SelectItem value="GMER">GMER</SelectItem>
                 </SelectContent>
               </Select>
               <FieldError message={form.formState.errors.mgmt_type?.message} />
@@ -1586,6 +1681,23 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                 className={inputCls}
               />
             </div>
+            <div className="space-y-1.5">
+              <FL>Is Featured</FL>
+              <Select
+                value={isFeaturedValue ? "yes" : "no"}
+                onValueChange={(value) =>
+                  form.setValue("featured", value === "yes", { shouldDirty: true })
+                }
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">⭐ Yes — Featured</SelectItem>
+                  <SelectItem value="no">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1600,93 +1712,271 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           />
         </CardHeader>
         <CardContent className={cardContentCls}>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 mb-6">
             <FL>Discipline Section</FL>
-            <Select
-              value={disciplineValue}
-              onValueChange={(value) => form.setValue("discipline", value)}
-            >
-              <SelectTrigger className={inputCls}>
-                <SelectValue placeholder="Select discipline" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[260px]">
-                {disciplineOptions.map((discipline) => (
-                  <SelectItem key={discipline.value} value={discipline.value}>
-                    {discipline.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <BookOpen className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground/60 z-10" />
+              <Select
+                value={disciplineValue}
+                onValueChange={(value) => {
+                  form.setValue("discipline", value, { shouldDirty: true });
+                  const currentCourses = form.getValues("courses") || [];
+                  currentCourses.forEach((_, index) => {
+                    form.setValue(`courses.${index}.course`, "", { shouldDirty: true });
+                    form.setValue(`courses.${index}.duration`, "", { shouldDirty: true });
+                    form.setValue(`courses.${index}.course_level`, "", { shouldDirty: true });
+                    form.setValue(`courses.${index}.total_intake`, "", { shouldDirty: true });
+                    form.setValue(`courses.${index}.pg_seats`, "", { shouldDirty: true });
+                    form.setValue(`courses.${index}.ss_seats`, "", { shouldDirty: true });
+                  });
+                }}
+              >
+                <SelectTrigger className={cn(inputCls, "pl-10 relative flex items-center gap-2")}>
+                  <SelectValue placeholder="Select discipline" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {disciplineOptions.map((discipline) => (
+                    <SelectItem key={discipline.value} value={discipline.value}>
+                      {discipline.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {courses.fields.map((field, index) => (
-            <RepeatableRow
-              key={field.id}
-              index={index}
-              onRemove={() => courses.remove(index)}
-            >
-              <div className="space-y-1">
-                <FL>Course</FL>
-                <Input
-                  {...form.register(`courses.${index}.course`)}
-                  placeholder="MBBS"
-                  className="h-8 bg-card border-border/40 text-sm"
-                />
+          {!disciplineValue ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border/60 rounded-xl bg-muted/5 text-center space-y-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <BookOpen className="h-6 w-6" />
               </div>
               <div className="space-y-1">
-                <FL>Duration</FL>
-                <Input
-                  {...form.register(`courses.${index}.duration`)}
-                  placeholder="5.5 Years"
-                  className="h-8 bg-card border-border/40 text-sm"
-                />
+                <h4 className="text-sm font-semibold text-foreground">No Discipline Selected</h4>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Select a discipline section at the top of this card to start adding and configuring courses for this college.
+                </p>
               </div>
-              <div className="space-y-1">
-                <FL>Course Level</FL>
-                <Select
-                  value={watchedCourses?.[index]?.course_level ?? ""}
-                  onValueChange={(value) =>
-                    form.setValue(
-                      `courses.${index}.course_level`,
-                      value as CourseLevel,
-                    )
-                  }
-                >
-                  <SelectTrigger className="h-8 bg-card border-border/40 text-sm">
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UG">UG</SelectItem>
-                    <SelectItem value="PG">PG</SelectItem>
-                    <SelectItem value="Diploma">Diploma</SelectItem>
-                    <SelectItem value="Doctorate">Doctorate</SelectItem>
-                    <SelectItem value="Certificate">Certificate</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <CourseSeatDetailsGroup
-                control={form.control}
-                register={form.register}
-                courseIndex={index}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {courses.fields.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border/60 rounded-xl bg-card text-center space-y-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold text-foreground">No Courses Added</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Click the button below to add your first program under this discipline.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                courses.fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="relative rounded-xl border border-border/60 bg-card p-5 shadow-xs hover:shadow-md hover:border-border transition-all duration-200 group/card"
+                  >
+                    <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <GraduationCap className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-bold text-foreground">
+                          {watchedCourses?.[index]?.course ? watchedCourses[index].course : `Course #${index + 1}`}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive/60 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
+                        onClick={() => courses.remove(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Row 1: course + duration + course level */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end w-full">
+                      <div className="space-y-1.5 md:col-span-2">
+                        <FL>Course</FL>
+                        <Select
+                          value={watchedCourses?.[index]?.course ?? ""}
+                          onValueChange={(value) => {
+                            form.setValue(`courses.${index}.course`, value, { shouldDirty: true });
+                            const selectedDbCourse = dbCourses.find(c => c.sub_course_category_name === value);
+                            if (selectedDbCourse) {
+                              let details = {};
+                              try {
+                                details = JSON.parse(selectedDbCourse.details || "{}");
+                              } catch (e) {
+                                console.error(e);
+                              }
+                              const duration = (details as any).duration || "";
+                              const level = (details as any).courseLevel || "";
+
+                              form.setValue(`courses.${index}.duration`, duration, { shouldDirty: true });
+                              
+                              let mappedLevel: CourseLevel = "Other";
+                              const dbLevelLower = (level || "").toLowerCase();
+                              if (dbLevelLower.includes("ug") || dbLevelLower.includes("under graduate") || dbLevelLower.includes("bachelor")) {
+                                mappedLevel = "UG";
+                              } else if (dbLevelLower.includes("pg") || dbLevelLower.includes("post graduate") || dbLevelLower.includes("master")) {
+                                mappedLevel = "PG";
+                              } else if (dbLevelLower.includes("diploma")) {
+                                mappedLevel = "Diploma";
+                              } else if (dbLevelLower.includes("doctorate") || dbLevelLower.includes("phd")) {
+                                mappedLevel = "Doctorate";
+                              } else if (dbLevelLower.includes("certificate")) {
+                                mappedLevel = "Certificate";
+                              }
+                              
+                              form.setValue(`courses.${index}.course_level`, mappedLevel, { shouldDirty: true });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-9 bg-card border-border/60 hover:border-border text-sm w-full transition-colors flex items-center gap-2 pl-3">
+                            <GraduationCap className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
+                            <SelectValue placeholder="Select course" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[220px]">
+                            {filteredCourses.map((c) => {
+                              const details = parsedDetails[c.id] || {};
+                              const dur = details.duration || "";
+                              const lvl = details.courseLevel || "";
+                              return (
+                                <SelectItem key={c.id} value={c.sub_course_category_name}>
+                                  <div className="flex items-center justify-between w-full gap-4 text-xs">
+                                    <span className="font-medium text-foreground">{c.sub_course_category_name}</span>
+                                    {(dur || lvl) && (
+                                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border/40 font-mono">
+                                        {lvl ? `${lvl} • ` : ""}{dur}
+                                      </span>
+                                    )}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                            {watchedCourses?.[index]?.course && !filteredCourses.some(c => c.sub_course_category_name === watchedCourses[index].course) && (
+                              <SelectItem value={watchedCourses[index].course}>
+                                {watchedCourses[index].course}
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-1">
+                        <FL>Duration</FL>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                          </span>
+                          <Input
+                            {...form.register(`courses.${index}.duration`)}
+                            placeholder="5.5 Years"
+                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-1">
+                        <FL>Course Level</FL>
+                        <Select
+                          value={watchedCourses?.[index]?.course_level ?? ""}
+                          onValueChange={(value) =>
+                            form.setValue(
+                              `courses.${index}.course_level`,
+                              value as CourseLevel,
+                              { shouldDirty: true }
+                            )
+                          }
+                        >
+                          <SelectTrigger className="h-9 bg-card border-border/60 hover:border-border text-sm w-full transition-colors">
+                            <SelectValue placeholder="Select level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UG">{renderCourseLevelBadge("UG")}</SelectItem>
+                            <SelectItem value="PG">{renderCourseLevelBadge("PG")}</SelectItem>
+                            <SelectItem value="Diploma">{renderCourseLevelBadge("Diploma")}</SelectItem>
+                            <SelectItem value="Doctorate">{renderCourseLevelBadge("Doctorate")}</SelectItem>
+                            <SelectItem value="Certificate">{renderCourseLevelBadge("Certificate")}</SelectItem>
+                            <SelectItem value="Other">{renderCourseLevelBadge("Other")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Row 2: total intake + total PG seat + Total SS seat */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end w-full">
+                      <div className="space-y-1.5 md:col-span-1">
+                        <FL>Total Intake</FL>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                          </span>
+                          <Input
+                            {...form.register(`courses.${index}.total_intake`)}
+                            placeholder="150"
+                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-1">
+                        <FL>Total PG Seat</FL>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                          </span>
+                          <Input
+                            {...form.register(`courses.${index}.pg_seats`)}
+                            placeholder="45"
+                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 md:col-span-1">
+                        <FL>Total SS Seat</FL>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            <Users className="h-4 w-4" />
+                          </span>
+                          <Input
+                            {...form.register(`courses.${index}.ss_seats`)}
+                            placeholder="12"
+                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Intake type + fee str + Seats */}
+                    <CourseSeatDetailsGroup
+                      control={form.control}
+                      register={form.register}
+                      courseIndex={index}
+                    />
+                  </div>
+                ))
+              )}
+
+              <AddRowButton
+                onClick={() =>
+                  courses.append({
+                    course: "",
+                    duration: "",
+                    course_level: "",
+                    total_intake: "",
+                    pg_seats: "",
+                    ss_seats: "",
+                    intake_total: [createCourseValueEntry()],
+                    fee: [createCourseValueEntry()],
+                    seats: [createCourseValueEntry()],
+                  })
+                }
+                label="Add Course"
               />
-            </RepeatableRow>
-          ))}
-          <AddRowButton
-            onClick={() =>
-              courses.append({
-                course: "",
-                duration: "",
-                course_level: "",
-                total_intake: [createCourseValueEntry()],
-                intake_total: [createCourseValueEntry()],
-                fee: [createCourseValueEntry()],
-                pg_seats: [createCourseValueEntry()],
-                ss_seats: [createCourseValueEntry()],
-              })
-            }
-            label="Add Course"
-          />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1699,7 +1989,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           />
         </CardHeader>
         <CardContent className={cardContentCls}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-1.5">
               <FL required>NIRF Rank</FL>
               <Input
@@ -1890,11 +2180,21 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
             </div>
             <div className="space-y-1.5">
               <FL>Exchange Program</FL>
-              <Input
-                {...form.register("exchange_program")}
-                placeholder="Exchange program details"
-                className={inputCls}
-              />
+              <Select
+                value={exchangeProgramValue}
+                onValueChange={(value) => form.setValue("exchange_program", value)}
+              >
+                <SelectTrigger className={inputCls}>
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {YES_NO_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <FL>Sponsorship</FL>
@@ -1990,19 +2290,69 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
             </div>
             <div className="space-y-1.5">
               <FL>Railway Station</FL>
-              <Input
-                {...form.register("railway_station")}
-                placeholder="Nearest railway station"
-                className={inputCls}
-              />
+              <Select
+                value={selectedRailwayValue}
+                onValueChange={(value) => form.setValue("railway_station", value)}
+                disabled={
+                  !selectedStateValue ||
+                  isLoadingRailway ||
+                  railwayOptions.length === 0
+                }
+              >
+                <SelectTrigger className={cn(inputCls, "disabled:opacity-50")}>
+                  <SelectValue
+                    placeholder={
+                      !selectedStateValue
+                        ? "Select state first"
+                        : isLoadingRailway
+                          ? "Loading stations..."
+                          : railwayOptions.length > 0
+                            ? "Select railway station"
+                            : "No stations found"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {railwayOptions.map((station) => (
+                    <SelectItem key={station.id} value={station.name}>
+                      {station.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
-              <FL>Bus Stand</FL>
-              <Input
-                {...form.register("bus_stand")}
-                placeholder="Nearest bus stand"
-                className={inputCls}
-              />
+              <FL>Bus Station</FL>
+              <Select
+                value={selectedBusStandValue}
+                onValueChange={(value) => form.setValue("bus_stand", value)}
+                disabled={
+                  !selectedStateValue ||
+                  isLoadingBusStation ||
+                  busStationOptions.length === 0
+                }
+              >
+                <SelectTrigger className={cn(inputCls, "disabled:opacity-50")}>
+                  <SelectValue
+                    placeholder={
+                      !selectedStateValue
+                        ? "Select state first"
+                        : isLoadingBusStation
+                          ? "Loading stations..."
+                          : busStationOptions.length > 0
+                            ? "Select bus station"
+                            : "No stations found"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="max-h-[260px]">
+                  {busStationOptions.map((station) => (
+                    <SelectItem key={station.id} value={station.name}>
+                      {station.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
@@ -2649,10 +2999,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <FL>Campus Tour Icon</FL>
+              <FL>Virtual Campus Tour</FL>
               <Input
                 {...form.register("campus_tour_icon")}
-                placeholder="Icon name or image URL"
+                placeholder="virtual campus URL"
                 className={inputCls}
               />
             </div>
