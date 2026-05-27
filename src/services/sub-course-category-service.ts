@@ -15,9 +15,6 @@ export interface SubCourseCategory {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
-  _count?: {
-    courseCategorySpecializations: number;
-  };
 }
 
 export interface SubCategoryQueryParams {

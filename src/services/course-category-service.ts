@@ -5,6 +5,7 @@ export interface CourseCategory {
   id: number;
   courses_category_name: string;
   icon?: string;
+  priority?: number;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;

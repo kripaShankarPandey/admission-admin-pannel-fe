@@ -75,7 +75,6 @@ export interface College {
   };
   course_categories?: JsonValue[];
   sub_course_categories?: JsonValue[];
-  course_category_specializations?: JsonValue[];
   courses?: JsonValue[];
   add_on_facilities?: JsonValue[];
   cutoff_state?: JsonValue;

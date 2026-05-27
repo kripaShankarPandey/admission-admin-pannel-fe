@@ -13,21 +13,6 @@ import {
     TableRow
 } from "@/components/ui/table";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form";
-import {
     Select,
     SelectContent,
     SelectItem,
@@ -35,12 +20,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Edit, Trash2, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
-import { useForm } from "react-hook-form";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +152,6 @@ export default function SubCategoriesPage() {
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Parent Discipline</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Level</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Duration</TableHead>
-                            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Specializations</TableHead>
                             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                             <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
                                 <MoreHorizontal className="h-4 w-4 ml-auto" />
@@ -179,7 +161,7 @@ export default function SubCategoriesPage() {
                     <TableBody>
                         {isLoading ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center py-10">
+                                <TableCell colSpan={7} className="text-center py-10">
                                     <div className="flex items-center justify-center gap-2">
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                                         <span className="text-muted-foreground">Loading...</span>
@@ -211,12 +193,6 @@ export default function SubCategoriesPage() {
                                         </TableCell>
                                         <TableCell className="text-muted-foreground text-[13px] font-medium">
                                             {details.duration || "N/A"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-1.5 text-muted-foreground text-[13px]">
-                                                {sub._count?.courseCategorySpecializations || 0} items
-                                                <ChevronDown className="h-3 w-3" />
-                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {sub?.publishedAt ? (
@@ -254,7 +230,7 @@ export default function SubCategoriesPage() {
                             })
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground font-medium">
+                                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground font-medium">
                                     No courses found.
                                 </TableCell>
                             </TableRow>

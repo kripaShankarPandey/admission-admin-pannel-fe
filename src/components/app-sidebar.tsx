@@ -68,11 +68,6 @@ const navSections: NavSection[] = [
       { title: "City", icon: MapPin, url: "/cities" },
       { title: "Discipline", icon: Layers, url: "/discipline" },
       { title: "Courses", icon: Layers, url: "/courses" },
-      {
-        title: "Specialization",
-        icon: Layers,
-        url: "/course-category-specialization",
-      },
     ],
   },
   {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -99,9 +99,12 @@ type CourseLevel =
   | "Other";
 
 interface CourseRow {
+  discipline?: string;
   course: string;
   duration: string;
   course_level: CourseLevel | "";
+  eligibility: string;
+  exam_accepted: string;
   total_intake: string;
   pg_seats: string;
   ss_seats: string;
@@ -113,6 +116,11 @@ interface CourseRow {
 interface CourseValueEntry {
   value: string;
   currency?: string;
+}
+
+interface DisciplineSectionRow {
+  discipline: string;
+  courses: CourseRow[];
 }
 
 interface RoundCutoff {
@@ -188,7 +196,6 @@ interface CollegeFormValues {
   hospital_overview_enabled: boolean;
   admission_counselling: string[];
   eligibility: string;
-  exam_accepted: string;
   internship: string;
   exchange_program: string;
   sponsorship: string;
@@ -208,6 +215,7 @@ interface CollegeFormValues {
   clinical_rotation: string;
   medical_camping: string;
   clinical_excilence_lab: ClinicalExcilenceLabRow[];
+  discipline_sections: DisciplineSectionRow[];
   courses: CourseRow[];
   cutoff_state_enabled: boolean;
   cutoff_all_india_enabled: boolean;
@@ -382,6 +390,36 @@ function renderCourseLevelBadge(level: string) {
   }
 }
 
+function mapCourseLevel(level: string): CourseLevel {
+  const dbLevelLower = level.toLowerCase();
+
+  if (
+    dbLevelLower.includes("ug") ||
+    dbLevelLower.includes("under graduate") ||
+    dbLevelLower.includes("bachelor")
+  ) {
+    return "UG";
+  }
+  if (
+    dbLevelLower.includes("pg") ||
+    dbLevelLower.includes("post graduate") ||
+    dbLevelLower.includes("master")
+  ) {
+    return "PG";
+  }
+  if (dbLevelLower.includes("diploma")) {
+    return "Diploma";
+  }
+  if (dbLevelLower.includes("doctorate") || dbLevelLower.includes("phd")) {
+    return "Doctorate";
+  }
+  if (dbLevelLower.includes("certificate")) {
+    return "Certificate";
+  }
+
+  return "Other";
+}
+
 function readSingleSeatValue(value: unknown): string {
   if (Array.isArray(value)) {
     if (value.length > 0) {
@@ -399,33 +437,35 @@ function readSingleSeatValue(value: unknown): string {
 function CourseSeatDetailsGroup({
   control,
   register,
-  courseIndex,
+  coursePath,
+  rowKey,
 }: {
   control: Control<CollegeFormValues>;
   register: UseFormRegister<CollegeFormValues>;
-  courseIndex: number;
+  coursePath: string;
+  rowKey: string;
 }) {
   const intakeFields = useFieldArray({
     control,
-    name: `courses.${courseIndex}.intake_total`,
+    name: `${coursePath}.intake_total` as never,
   });
   const feeFields = useFieldArray({
     control,
-    name: `courses.${courseIndex}.fee`,
+    name: `${coursePath}.fee` as never,
   });
   const seatsFields = useFieldArray({
     control,
-    name: `courses.${courseIndex}.seats`,
+    name: `${coursePath}.seats` as never,
   });
 
   const intakeValues = useWatch({
     control,
-    name: `courses.${courseIndex}.intake_total`,
-  });
+    name: `${coursePath}.intake_total` as never,
+  }) as CourseValueEntry[] | undefined;
   const feeValues = useWatch({
     control,
-    name: `courses.${courseIndex}.fee`,
-  });
+    name: `${coursePath}.fee` as never,
+  }) as CourseValueEntry[] | undefined;
   const rowCount = Math.max(
     intakeFields.fields.length,
     feeFields.fields.length,
@@ -444,7 +484,7 @@ function CourseSeatDetailsGroup({
       <div className="space-y-2">
         {Array.from({ length: rowCount }).map((_, nestedIndex) => (
           <div
-            key={`course-${courseIndex}-detail-${nestedIndex}`}
+            key={`${rowKey}-detail-${nestedIndex}`}
             className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr_auto] gap-3 items-center bg-muted/10 p-2 rounded-lg border border-border/30 hover:border-border/60 transition-colors"
           >
             <div>
@@ -490,7 +530,7 @@ function CourseSeatDetailsGroup({
                 </Select>
               </div>
               <Input
-                {...register(`courses.${courseIndex}.fee.${nestedIndex}.value`)}
+                {...register(`${coursePath}.fee.${nestedIndex}.value` as never)}
                 placeholder="25000"
                 className="h-9 bg-card border-border/60 text-sm pl-16 w-full"
               />
@@ -498,7 +538,7 @@ function CourseSeatDetailsGroup({
             <div>
               <Input
                 {...register(
-                  `courses.${courseIndex}.seats.${nestedIndex}.value`,
+                  `${coursePath}.seats.${nestedIndex}.value` as never,
                 )}
                 placeholder="150"
                 className="h-9 bg-card border-border/60 text-sm"
@@ -540,6 +580,427 @@ function CourseSeatDetailsGroup({
   );
 }
 
+function DisciplineCoursesGroup({
+  control,
+  register,
+  setValue,
+  getValues,
+  sectionIndex,
+  sectionId,
+  onRemoveSection,
+  canRemoveSection,
+  dbCourses,
+  parsedDetails,
+  disciplineOptions,
+  inputCls,
+}: {
+  control: Control<CollegeFormValues>;
+  register: UseFormRegister<CollegeFormValues>;
+  setValue: ReturnType<typeof useForm<CollegeFormValues>>["setValue"];
+  getValues: ReturnType<typeof useForm<CollegeFormValues>>["getValues"];
+  sectionIndex: number;
+  sectionId: string;
+  onRemoveSection: () => void;
+  canRemoveSection: boolean;
+  dbCourses: SubCourseCategory[];
+  parsedDetails: Record<number, Record<string, unknown>>;
+  disciplineOptions: Array<{ label: string; value: string }>;
+  inputCls: string;
+}) {
+  const sectionCourses = useFieldArray({
+    control,
+    name: `discipline_sections.${sectionIndex}.courses`,
+  });
+  const selectedDiscipline = useWatch({
+    control,
+    name: `discipline_sections.${sectionIndex}.discipline`,
+  });
+  const watchedSectionCourses = useWatch({
+    control,
+    name: `discipline_sections.${sectionIndex}.courses`,
+  }) as CourseRow[] | undefined;
+
+  const filteredCourses = useMemo(() => {
+    if (!selectedDiscipline) return [];
+    return dbCourses.filter(
+      (course) =>
+        course.courseCategory?.courses_category_name?.toLowerCase() ===
+        selectedDiscipline.toLowerCase(),
+    );
+  }, [dbCourses, selectedDiscipline]);
+
+  const coursePath = (courseIndex: number) =>
+    `discipline_sections.${sectionIndex}.courses.${courseIndex}` as const;
+
+  const applySelectedCourseDetails = async (
+    courseId: number,
+    courseIndex: number,
+  ) => {
+    let details = parsedDetails[courseId] || {};
+
+    try {
+      const courseRecord = await subCourseCategoryService.getOne(courseId);
+      details = JSON.parse(courseRecord.details || "{}") as Record<string, unknown>;
+    } catch (error) {
+      console.error("Failed to fetch selected course details:", error);
+    }
+
+    const duration = readString(details.duration);
+    const level = readString(details.courseLevel);
+    const eligibility = readString(details.eligibility);
+    const mappedLevel = mapCourseLevel(level);
+
+    setValue(`${coursePath(courseIndex)}.duration`, duration, {
+      shouldDirty: true,
+    });
+    setValue(`${coursePath(courseIndex)}.course_level`, mappedLevel, {
+      shouldDirty: true,
+    });
+    setValue(`${coursePath(courseIndex)}.eligibility`, eligibility, {
+      shouldDirty: true,
+    });
+  };
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-5 shadow-xs">
+      <div className="mb-5 flex flex-col gap-4 border-b border-border/40 pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="w-full space-y-1.5 lg:max-w-xl">
+          <FL>Discipline Section</FL>
+          <div className="relative">
+            <BookOpen className="pointer-events-none absolute left-3 top-1/2 z-10 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground/60" />
+            <Select
+              value={selectedDiscipline}
+              onValueChange={(value) => {
+                setValue(`discipline_sections.${sectionIndex}.discipline`, value, {
+                  shouldDirty: true,
+                });
+                const currentCourses =
+                  getValues(`discipline_sections.${sectionIndex}.courses`) || [];
+                currentCourses.forEach((_, courseIndex) => {
+                  setValue(`${coursePath(courseIndex)}.discipline`, value, {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.course`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.duration`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.course_level`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.eligibility`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.exam_accepted`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.total_intake`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.pg_seats`, "", {
+                    shouldDirty: true,
+                  });
+                  setValue(`${coursePath(courseIndex)}.ss_seats`, "", {
+                    shouldDirty: true,
+                  });
+                });
+              }}
+            >
+              <SelectTrigger className={cn(inputCls, "relative flex items-center gap-2 pl-10")}>
+                <SelectValue placeholder="Select discipline" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[260px]">
+                {disciplineOptions.map((discipline) => (
+                  <SelectItem key={discipline.value} value={discipline.value}>
+                    {discipline.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {canRemoveSection && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 w-fit text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+            onClick={onRemoveSection}
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" />
+            Remove Discipline
+          </Button>
+        )}
+      </div>
+
+      {!selectedDiscipline ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-muted/5 px-4 py-10 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <BookOpen className="h-6 w-6" />
+          </div>
+          <h4 className="text-sm font-semibold text-foreground">
+            No Discipline Selected
+          </h4>
+          <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+            Select a discipline for this section, then add courses under it.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {sectionCourses.fields.map((field, courseIndex) => (
+            <div
+              key={field.id}
+              className="relative rounded-xl border border-border/60 bg-background p-5 shadow-xs transition-all duration-200 hover:border-border hover:shadow-md"
+            >
+              <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <GraduationCap className="h-4 w-4" />
+                  </div>
+                  <span className="truncate text-sm font-bold text-foreground">
+                    {watchedSectionCourses?.[courseIndex]?.course ||
+                      `Course #${courseIndex + 1}`}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-destructive/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => sectionCourses.remove(courseIndex)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="mb-4 grid w-full grid-cols-1 items-end gap-4 md:grid-cols-4">
+                <div className="space-y-1.5 md:col-span-2">
+                  <FL>Course</FL>
+                  <Select
+                    value={watchedSectionCourses?.[courseIndex]?.course ?? ""}
+                    onValueChange={(value) => {
+                      setValue(`${coursePath(courseIndex)}.course`, value, {
+                        shouldDirty: true,
+                      });
+                      setValue(`${coursePath(courseIndex)}.discipline`, selectedDiscipline, {
+                        shouldDirty: true,
+                      });
+                      const selectedDbCourse = dbCourses.find(
+                        (course) => course.sub_course_category_name === value,
+                      );
+                      setValue(`${coursePath(courseIndex)}.eligibility`, "", {
+                        shouldDirty: true,
+                      });
+                      setValue(`${coursePath(courseIndex)}.exam_accepted`, "", {
+                        shouldDirty: true,
+                      });
+
+                      if (selectedDbCourse) {
+                        void applySelectedCourseDetails(
+                          selectedDbCourse.id,
+                          courseIndex,
+                        );
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="flex h-9 w-full items-center gap-2 border-border/60 bg-card pl-3 text-sm transition-colors hover:border-border">
+                      <GraduationCap className="h-4.5 w-4.5 shrink-0 text-muted-foreground" />
+                      <SelectValue placeholder="Select course" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[220px]">
+                      {filteredCourses.map((course) => {
+                        const details = parsedDetails[course.id] || {};
+                        const duration = readString(details.duration);
+                        const level = readString(details.courseLevel);
+
+                        return (
+                          <SelectItem
+                            key={course.id}
+                            value={course.sub_course_category_name}
+                          >
+                            <div className="flex w-full items-center justify-between gap-4 text-xs">
+                              <span className="font-medium text-foreground">
+                                {course.sub_course_category_name}
+                              </span>
+                              {(duration || level) && (
+                                <span className="inline-flex items-center gap-1 rounded border border-border/40 bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                  {level ? `${level} / ` : ""}
+                                  {duration}
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                      {watchedSectionCourses?.[courseIndex]?.course &&
+                        !filteredCourses.some(
+                          (course) =>
+                            course.sub_course_category_name ===
+                            watchedSectionCourses[courseIndex].course,
+                        ) && (
+                          <SelectItem value={watchedSectionCourses[courseIndex].course}>
+                            {watchedSectionCourses[courseIndex].course}
+                          </SelectItem>
+                        )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <FL>Duration</FL>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                    </span>
+                    <Input
+                      {...register(`${coursePath(courseIndex)}.duration`)}
+                      placeholder="5.5 Years"
+                      className="h-9 w-full border-border/60 bg-card pl-9 text-sm transition-colors hover:border-border"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <FL>Course Level</FL>
+                  <Select
+                    value={watchedSectionCourses?.[courseIndex]?.course_level ?? ""}
+                    onValueChange={(value) =>
+                      setValue(`${coursePath(courseIndex)}.course_level`, value as CourseLevel, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-9 w-full border-border/60 bg-card text-sm transition-colors hover:border-border">
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UG">{renderCourseLevelBadge("UG")}</SelectItem>
+                      <SelectItem value="PG">{renderCourseLevelBadge("PG")}</SelectItem>
+                      <SelectItem value="Diploma">
+                        {renderCourseLevelBadge("Diploma")}
+                      </SelectItem>
+                      <SelectItem value="Doctorate">
+                        {renderCourseLevelBadge("Doctorate")}
+                      </SelectItem>
+                      <SelectItem value="Certificate">
+                        {renderCourseLevelBadge("Certificate")}
+                      </SelectItem>
+                      <SelectItem value="Other">
+                        {renderCourseLevelBadge("Other")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-4 grid w-full grid-cols-1 gap-4 md:grid-cols-10">
+                <div className="space-y-1.5 md:col-span-7">
+                  <FL>Eligibility</FL>
+                  <Input
+                    {...register(`${coursePath(courseIndex)}.eligibility`)}
+                    readOnly
+                    className="h-10 border-border/60 bg-muted/30 text-sm text-foreground transition-colors read-only:cursor-default"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Auto-filled from the selected course.
+                  </p>
+                </div>
+                <div className="space-y-1.5 md:col-span-3">
+                  <FL>Exam Accepted</FL>
+                  <Select
+                    value={watchedSectionCourses?.[courseIndex]?.exam_accepted ?? ""}
+                    onValueChange={(value) =>
+                      setValue(`${coursePath(courseIndex)}.exam_accepted`, value, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-10 w-full border-border/60 bg-card text-sm transition-colors hover:border-border">
+                      <SelectValue placeholder="Select exam" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[260px]">
+                      {EXAM_ACCEPTED_OPTIONS.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mb-4 grid w-full grid-cols-1 items-end gap-4 md:grid-cols-3">
+                <div className="space-y-1.5">
+                  <FL>Total Intake</FL>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                    </span>
+                    <Input
+                      {...register(`${coursePath(courseIndex)}.total_intake`)}
+                      placeholder="150"
+                      className="h-9 w-full border-border/60 bg-card pl-9 text-sm transition-colors hover:border-border"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <FL>Total PG Seat</FL>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                    </span>
+                    <Input
+                      {...register(`${coursePath(courseIndex)}.pg_seats`)}
+                      placeholder="45"
+                      className="h-9 w-full border-border/60 bg-card pl-9 text-sm transition-colors hover:border-border"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <FL>Total SS Seat</FL>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                    </span>
+                    <Input
+                      {...register(`${coursePath(courseIndex)}.ss_seats`)}
+                      placeholder="12"
+                      className="h-9 w-full border-border/60 bg-card pl-9 text-sm transition-colors hover:border-border"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <CourseSeatDetailsGroup
+                control={control}
+                register={register}
+                coursePath={coursePath(courseIndex)}
+                rowKey={`${sectionId}-${courseIndex}`}
+              />
+            </div>
+          ))}
+
+          {sectionCourses.fields.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-background px-4 py-10 text-center">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Plus className="h-5 w-5" />
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">No Courses Added</h4>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Add your first program under this discipline.
+              </p>
+            </div>
+          )}
+
+          <AddRowButton
+            onClick={() => sectionCourses.append(defaultCourseRow(selectedDiscipline))}
+            label="Add Course"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function defaultRoundCutoff(value?: Partial<RoundCutoff>): RoundCutoff {
   return {
     r1: readString(value?.r1),
@@ -576,6 +1037,30 @@ function defaultGovtAiqCutoff(value?: Partial<GovtAiqCutoff>): GovtAiqCutoff {
 
 function createCourseValueEntry(value = "", currency = "INR"): CourseValueEntry {
   return { value, currency };
+}
+
+function defaultCourseRow(discipline = ""): CourseRow {
+  return {
+    discipline,
+    course: "",
+    duration: "",
+    course_level: "",
+    eligibility: "",
+    exam_accepted: "",
+    total_intake: "",
+    pg_seats: "",
+    ss_seats: "",
+    intake_total: [createCourseValueEntry()],
+    fee: [createCourseValueEntry()],
+    seats: [createCourseValueEntry()],
+  };
+}
+
+function defaultDisciplineSectionRow(): DisciplineSectionRow {
+  return {
+    discipline: "",
+    courses: [defaultCourseRow()],
+  };
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -684,21 +1169,13 @@ function normalizeCourseValueEntries(value: unknown): CourseValueEntry[] {
   return [createCourseValueEntry(readString(value))];
 }
 
-function normalizeCourseRows(value: unknown): CourseRow[] {
+function normalizeCourseRows(
+  value: unknown,
+  fallbackEligibility = "",
+  fallbackExamAccepted = "",
+): CourseRow[] {
   if (!Array.isArray(value) || value.length === 0) {
-    return [
-      {
-        course: "",
-        duration: "",
-        course_level: "",
-        total_intake: "",
-        pg_seats: "",
-        ss_seats: "",
-        intake_total: [createCourseValueEntry()],
-        fee: [createCourseValueEntry()],
-        seats: [createCourseValueEntry()],
-      },
-    ];
+    return [defaultCourseRow()];
   }
 
   return value.map((row) => {
@@ -724,11 +1201,20 @@ function normalizeCourseRows(value: unknown): CourseRow[] {
     );
 
     return {
+      discipline: readString((record as { discipline?: unknown }).discipline),
       course: readString((record as { course?: unknown }).course),
       duration: readString((record as { duration?: unknown }).duration),
       course_level: readString(
         (record as { course_level?: unknown }).course_level,
       ) as CourseLevel | "",
+      eligibility: readString(
+        (record as { eligibility?: unknown }).eligibility,
+        fallbackEligibility,
+      ),
+      exam_accepted: readString(
+        (record as { exam_accepted?: unknown }).exam_accepted,
+        fallbackExamAccepted,
+      ),
       total_intake: readSingleSeatValue((record as { total_intake?: unknown }).total_intake),
       pg_seats: readSingleSeatValue((record as { pg_seats?: unknown }).pg_seats),
       ss_seats: readSingleSeatValue((record as { ss_seats?: unknown }).ss_seats),
@@ -743,6 +1229,47 @@ function normalizeCourseRows(value: unknown): CourseRow[] {
       }),
     };
   });
+}
+
+function normalizeDisciplineSections(
+  discipline: unknown,
+  courses: unknown,
+  fallbackEligibility = "",
+  fallbackExamAccepted = "",
+): DisciplineSectionRow[] {
+  const normalizedCourses = normalizeCourseRows(
+    courses,
+    fallbackEligibility,
+    fallbackExamAccepted,
+  );
+  const sections = new Map<string, CourseRow[]>();
+  const fallbackDiscipline = readString(discipline);
+
+  normalizedCourses.forEach((course) => {
+    const sectionName = course.discipline || fallbackDiscipline;
+    if (!sections.has(sectionName)) {
+      sections.set(sectionName, []);
+    }
+    sections.get(sectionName)?.push({ ...course, discipline: sectionName });
+  });
+
+  if (sections.size === 0) return [defaultDisciplineSectionRow()];
+
+  return Array.from(sections.entries()).map(([sectionName, sectionCourses]) => ({
+    discipline: sectionName,
+    courses: sectionCourses.length > 0 ? sectionCourses : [defaultCourseRow(sectionName)],
+  }));
+}
+
+function flattenDisciplineSections(
+  sections: DisciplineSectionRow[] = [],
+): CourseRow[] {
+  return sections.flatMap((section) =>
+    (section.courses || []).map((course) => ({
+      ...course,
+      discipline: section.discipline,
+    })),
+  );
 }
 
 function roundCutoffFields(
@@ -952,10 +1479,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     eligibility: readString(
       (initialData as Partial<College> & Record<string, unknown>)?.eligibility,
     ),
-    exam_accepted: readString(
-      (initialData as Partial<College> & Record<string, unknown>)
-        ?.exam_accepted,
-    ),
     internship: readString(
       (initialData as Partial<College> & Record<string, unknown>)?.internship,
     ),
@@ -1021,8 +1544,24 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       (initialData as Partial<College> & Record<string, unknown>)
         ?.clinical_excilence_lab,
     ),
+    discipline_sections: normalizeDisciplineSections(
+      (initialData as Partial<College> & Record<string, unknown>)?.discipline,
+      (initialData as Partial<College> & Record<string, unknown>)?.courses,
+      readString(
+        (initialData as Partial<College> & Record<string, unknown>)?.eligibility,
+      ),
+      readString(
+        (initialData as Partial<College> & Record<string, unknown>)?.exam_accepted,
+      ),
+    ),
     courses: normalizeCourseRows(
       (initialData as Partial<College> & Record<string, unknown>)?.courses,
+      readString(
+        (initialData as Partial<College> & Record<string, unknown>)?.eligibility,
+      ),
+      readString(
+        (initialData as Partial<College> & Record<string, unknown>)?.exam_accepted,
+      ),
     ),
     cutoff_state_enabled: readBoolean(
       (initialData as Partial<College> & Record<string, unknown>)
@@ -1078,7 +1617,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       form.reset(parsedDefaultValues);
     }
   }, [initialData, form, parsedDefaultValues]);
-  const watchedCourses = useWatch({ control: form.control, name: "courses" });
+  const watchedDisciplineSections = useWatch({
+    control: form.control,
+    name: "discipline_sections",
+  });
   const collegeName = useWatch({ control: form.control, name: "college_name" });
   const featuredImageValue = useWatch({
     control: form.control,
@@ -1101,15 +1643,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     control: form.control,
     name: "admission_counselling",
   });
-  const examAcceptedValue = useWatch({
-    control: form.control,
-    name: "exam_accepted",
-  });
-  const disciplineValue = useWatch({
-    control: form.control,
-    name: "discipline",
-  });
-
   const parsedDetails = useMemo(() => {
     return dbCourses.reduce((acc, c) => {
       try {
@@ -1118,17 +1651,8 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
         acc[c.id] = {};
       }
       return acc;
-    }, {} as Record<number, any>);
+    }, {} as Record<number, Record<string, unknown>>);
   }, [dbCourses]);
-
-  const filteredCourses = useMemo(() => {
-    if (!disciplineValue) return [];
-    return dbCourses.filter(
-      (course) =>
-        course.courseCategory?.courses_category_name?.toLowerCase() ===
-        disciplineValue.toLowerCase(),
-    );
-  }, [dbCourses, disciplineValue]);
 
   const internshipValue = useWatch({
     control: form.control,
@@ -1189,9 +1713,9 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     name: "clinical_excilence_lab",
   });
 
-  const courses = useFieldArray({
+  const disciplineSections = useFieldArray({
     control: form.control,
-    name: "courses",
+    name: "discipline_sections",
   });
   const clinicalExcilenceLabFields = useFieldArray({
     control: form.control,
@@ -1254,6 +1778,51 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       required: "Management type is required",
     });
   }, [form]);
+
+  useEffect(() => {
+    if (dbCourses.length === 0) return;
+
+    const sections = form.getValues("discipline_sections") || [];
+
+    sections.forEach((section, sectionIndex) => {
+      section.courses.forEach((course, courseIndex) => {
+        if (!course.course) return;
+
+        const matchedCourse = dbCourses.find(
+          (dbCourse) => dbCourse.sub_course_category_name === course.course,
+        );
+
+        if (!matchedCourse) return;
+
+        const details = parsedDetails[matchedCourse.id] || {};
+        const duration = readString(details.duration);
+        const courseLevel = readString(details.courseLevel);
+        const eligibility = readString(details.eligibility);
+
+        if (course.duration !== duration) {
+          form.setValue(
+            `discipline_sections.${sectionIndex}.courses.${courseIndex}.duration`,
+            duration,
+          );
+        }
+
+        const mappedLevel = mapCourseLevel(courseLevel);
+        if (course.course_level !== mappedLevel) {
+          form.setValue(
+            `discipline_sections.${sectionIndex}.courses.${courseIndex}.course_level`,
+            mappedLevel,
+          );
+        }
+
+        if (course.eligibility !== eligibility) {
+          form.setValue(
+            `discipline_sections.${sectionIndex}.courses.${courseIndex}.eligibility`,
+            eligibility,
+          );
+        }
+      });
+    });
+  }, [dbCourses, form, parsedDetails]);
 
   useEffect(() => {
     const fetchReachUsOptions = async () => {
@@ -1404,9 +1973,27 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
         city.id.toString() === data.city ||
         (city.city === data.city && city.state === data.state),
     );
+    const flattenedCourses = flattenDisciplineSections(data.discipline_sections);
+    const selectedDisciplines = data.discipline_sections
+      .map((section) => section.discipline.trim())
+      .filter(Boolean);
+    const examAcceptedSummary = Array.from(
+      new Set(
+        flattenedCourses
+          .map((course) => course.exam_accepted.trim())
+          .filter(Boolean),
+      ),
+    ).join("; ");
+    const submitData = Object.fromEntries(
+      Object.entries(data).filter(
+        ([key]) => key !== "discipline_sections" && key !== "eligibility",
+      ),
+    ) as Omit<CollegeFormValues, "discipline_sections" | "eligibility">;
 
     const payload = {
-      ...data,
+      ...submitData,
+      discipline: selectedDisciplines.join(", "),
+      courses: flattenedCourses,
       featured: data.featured,
       isFeatured: data.featured,
       priority: Number(data.priority) || 1,
@@ -1417,6 +2004,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       college_description: data.overview,
       apply_now_url: data.action_url,
       gallery: data.gallery,
+      exam_accepted: examAcceptedSummary,
       admission_counselling: data.admission_counselling.join("; "),
       cityId: selectedCity && selectedCity.id > 0 ? selectedCity.id : undefined,
       city_name: selectedCity?.city || data.city,
@@ -1708,275 +2296,34 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
             icon={GraduationCap}
             title="Discipline & Courses"
             subtitle="Program structure and seat details"
-            count={courses.fields.length}
+            count={flattenDisciplineSections(watchedDisciplineSections).length}
           />
         </CardHeader>
         <CardContent className={cardContentCls}>
-          <div className="space-y-1.5 mb-6">
-            <FL>Discipline Section</FL>
-            <div className="relative">
-              <BookOpen className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-muted-foreground/60 z-10" />
-              <Select
-                value={disciplineValue}
-                onValueChange={(value) => {
-                  form.setValue("discipline", value, { shouldDirty: true });
-                  const currentCourses = form.getValues("courses") || [];
-                  currentCourses.forEach((_, index) => {
-                    form.setValue(`courses.${index}.course`, "", { shouldDirty: true });
-                    form.setValue(`courses.${index}.duration`, "", { shouldDirty: true });
-                    form.setValue(`courses.${index}.course_level`, "", { shouldDirty: true });
-                    form.setValue(`courses.${index}.total_intake`, "", { shouldDirty: true });
-                    form.setValue(`courses.${index}.pg_seats`, "", { shouldDirty: true });
-                    form.setValue(`courses.${index}.ss_seats`, "", { shouldDirty: true });
-                  });
-                }}
-              >
-                <SelectTrigger className={cn(inputCls, "pl-10 relative flex items-center gap-2")}>
-                  <SelectValue placeholder="Select discipline" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[260px]">
-                  {disciplineOptions.map((discipline) => (
-                    <SelectItem key={discipline.value} value={discipline.value}>
-                      {discipline.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {!disciplineValue ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border/60 rounded-xl bg-muted/5 text-center space-y-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-foreground">No Discipline Selected</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">
-                  Select a discipline section at the top of this card to start adding and configuring courses for this college.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {courses.fields.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border/60 rounded-xl bg-card text-center space-y-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <Plus className="h-5 w-5" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-semibold text-foreground">No Courses Added</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Click the button below to add your first program under this discipline.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                courses.fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="relative rounded-xl border border-border/60 bg-card p-5 shadow-xs hover:shadow-md hover:border-border transition-all duration-200 group/card"
-                  >
-                    <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-                          <GraduationCap className="h-4 w-4" />
-                        </div>
-                        <span className="text-sm font-bold text-foreground">
-                          {watchedCourses?.[index]?.course ? watchedCourses[index].course : `Course #${index + 1}`}
-                        </span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive/60 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
-                        onClick={() => courses.remove(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Row 1: course + duration + course level */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 items-end w-full">
-                      <div className="space-y-1.5 md:col-span-2">
-                        <FL>Course</FL>
-                        <Select
-                          value={watchedCourses?.[index]?.course ?? ""}
-                          onValueChange={(value) => {
-                            form.setValue(`courses.${index}.course`, value, { shouldDirty: true });
-                            const selectedDbCourse = dbCourses.find(c => c.sub_course_category_name === value);
-                            if (selectedDbCourse) {
-                              let details = {};
-                              try {
-                                details = JSON.parse(selectedDbCourse.details || "{}");
-                              } catch (e) {
-                                console.error(e);
-                              }
-                              const duration = (details as any).duration || "";
-                              const level = (details as any).courseLevel || "";
-
-                              form.setValue(`courses.${index}.duration`, duration, { shouldDirty: true });
-                              
-                              let mappedLevel: CourseLevel = "Other";
-                              const dbLevelLower = (level || "").toLowerCase();
-                              if (dbLevelLower.includes("ug") || dbLevelLower.includes("under graduate") || dbLevelLower.includes("bachelor")) {
-                                mappedLevel = "UG";
-                              } else if (dbLevelLower.includes("pg") || dbLevelLower.includes("post graduate") || dbLevelLower.includes("master")) {
-                                mappedLevel = "PG";
-                              } else if (dbLevelLower.includes("diploma")) {
-                                mappedLevel = "Diploma";
-                              } else if (dbLevelLower.includes("doctorate") || dbLevelLower.includes("phd")) {
-                                mappedLevel = "Doctorate";
-                              } else if (dbLevelLower.includes("certificate")) {
-                                mappedLevel = "Certificate";
-                              }
-                              
-                              form.setValue(`courses.${index}.course_level`, mappedLevel, { shouldDirty: true });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="h-9 bg-card border-border/60 hover:border-border text-sm w-full transition-colors flex items-center gap-2 pl-3">
-                            <GraduationCap className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
-                            <SelectValue placeholder="Select course" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[220px]">
-                            {filteredCourses.map((c) => {
-                              const details = parsedDetails[c.id] || {};
-                              const dur = details.duration || "";
-                              const lvl = details.courseLevel || "";
-                              return (
-                                <SelectItem key={c.id} value={c.sub_course_category_name}>
-                                  <div className="flex items-center justify-between w-full gap-4 text-xs">
-                                    <span className="font-medium text-foreground">{c.sub_course_category_name}</span>
-                                    {(dur || lvl) && (
-                                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border/40 font-mono">
-                                        {lvl ? `${lvl} • ` : ""}{dur}
-                                      </span>
-                                    )}
-                                  </div>
-                                </SelectItem>
-                              );
-                            })}
-                            {watchedCourses?.[index]?.course && !filteredCourses.some(c => c.sub_course_category_name === watchedCourses[index].course) && (
-                              <SelectItem value={watchedCourses[index].course}>
-                                {watchedCourses[index].course}
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5 md:col-span-1">
-                        <FL>Duration</FL>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                          </span>
-                          <Input
-                            {...form.register(`courses.${index}.duration`)}
-                            placeholder="5.5 Years"
-                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 md:col-span-1">
-                        <FL>Course Level</FL>
-                        <Select
-                          value={watchedCourses?.[index]?.course_level ?? ""}
-                          onValueChange={(value) =>
-                            form.setValue(
-                              `courses.${index}.course_level`,
-                              value as CourseLevel,
-                              { shouldDirty: true }
-                            )
-                          }
-                        >
-                          <SelectTrigger className="h-9 bg-card border-border/60 hover:border-border text-sm w-full transition-colors">
-                            <SelectValue placeholder="Select level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="UG">{renderCourseLevelBadge("UG")}</SelectItem>
-                            <SelectItem value="PG">{renderCourseLevelBadge("PG")}</SelectItem>
-                            <SelectItem value="Diploma">{renderCourseLevelBadge("Diploma")}</SelectItem>
-                            <SelectItem value="Doctorate">{renderCourseLevelBadge("Doctorate")}</SelectItem>
-                            <SelectItem value="Certificate">{renderCourseLevelBadge("Certificate")}</SelectItem>
-                            <SelectItem value="Other">{renderCourseLevelBadge("Other")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Row 2: total intake + total PG seat + Total SS seat */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end w-full">
-                      <div className="space-y-1.5 md:col-span-1">
-                        <FL>Total Intake</FL>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                          </span>
-                          <Input
-                            {...form.register(`courses.${index}.total_intake`)}
-                            placeholder="150"
-                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 md:col-span-1">
-                        <FL>Total PG Seat</FL>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                          </span>
-                          <Input
-                            {...form.register(`courses.${index}.pg_seats`)}
-                            placeholder="45"
-                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 md:col-span-1">
-                        <FL>Total SS Seat</FL>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            <Users className="h-4 w-4" />
-                          </span>
-                          <Input
-                            {...form.register(`courses.${index}.ss_seats`)}
-                            placeholder="12"
-                            className="h-9 bg-card border-border/60 hover:border-border text-sm w-full pl-9 transition-colors"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Row 3: Intake type + fee str + Seats */}
-                    <CourseSeatDetailsGroup
-                      control={form.control}
-                      register={form.register}
-                      courseIndex={index}
-                    />
-                  </div>
-                ))
-              )}
-
-              <AddRowButton
-                onClick={() =>
-                  courses.append({
-                    course: "",
-                    duration: "",
-                    course_level: "",
-                    total_intake: "",
-                    pg_seats: "",
-                    ss_seats: "",
-                    intake_total: [createCourseValueEntry()],
-                    fee: [createCourseValueEntry()],
-                    seats: [createCourseValueEntry()],
-                  })
-                }
-                label="Add Course"
+          <div className="space-y-6">
+            {disciplineSections.fields.map((section, sectionIndex) => (
+              <DisciplineCoursesGroup
+                key={section.id}
+                control={form.control}
+                register={form.register}
+                setValue={form.setValue}
+                getValues={form.getValues}
+                sectionIndex={sectionIndex}
+                sectionId={section.id}
+                onRemoveSection={() => disciplineSections.remove(sectionIndex)}
+                canRemoveSection={disciplineSections.fields.length > 1}
+                dbCourses={dbCourses}
+                parsedDetails={parsedDetails}
+                disciplineOptions={disciplineOptions}
+                inputCls={inputCls}
               />
-            </div>
-          )}
+            ))}
+
+            <AddRowButton
+              onClick={() => disciplineSections.append(defaultDisciplineSectionRow())}
+              label="Add Discipline"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -2102,32 +2449,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <FL>Eligibility</FL>
-              <Input
-                {...form.register("eligibility")}
-                placeholder="12th PCB / Graduation"
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <FL>Exam Accepted</FL>
-              <Select
-                value={examAcceptedValue}
-                onValueChange={(value) => form.setValue("exam_accepted", value)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select exam" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[260px]">
-                  {EXAM_ACCEPTED_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

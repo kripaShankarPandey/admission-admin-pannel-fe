@@ -51,6 +51,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
             courses_image: "",
             courseLevel: "",
             duration: "",
+            eligibility: "",
             shortDescription: "",
             quickInfoItems: [{ name: "", value: "" }],
             applyNowUrl: "",
@@ -114,6 +115,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     courses_image: res.courses_image || "",
                     courseLevel: (details as any).courseLevel || "",
                     duration: (details as any).duration || "",
+                    eligibility: (details as any).eligibility || "",
                     shortDescription: (details as any).shortDescription || "",
                     quickInfoItems: (details as any).quickInfo?.items?.length ? (details as any).quickInfo.items : [{ name: "", value: "" }],
                     applyNowUrl: (details as any).quickInfo?.applyNow || "",
@@ -146,6 +148,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                 priority: parseInt(data.priority) || 1,
                 courseLevel: data.courseLevel,
                 duration: data.duration,
+                eligibility: data.eligibility,
                 shortDescription: data.shortDescription,
                 quickInfo: {
                     items: data.quickInfoItems,
@@ -293,6 +296,19 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                                     <FormControl><Input placeholder="e.g. 2 Years" {...field} /></FormControl>
                                 </FormItem>
                             )} />
+                            <div className="md:col-span-2">
+                                <FormField control={control} name="eligibility" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Eligibility</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="e.g. 10+2 with PCB + English | Min. 50% | NEET qualified required"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
                             <div className="md:col-span-2">
                                 <FormField control={control} name="shortDescription" render={({ field }) => (
                                     <FormItem>
