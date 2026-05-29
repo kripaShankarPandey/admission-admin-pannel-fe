@@ -1,13 +1,11 @@
 import { apiClient } from "@/lib/api-client";
 
-export interface HomeRunningTextItem {
-  text: string;
-  featured: boolean;
-}
-
 export interface HomeBannerItem {
   title: string;
+  subtitle?: string;
   image: string;
+  ctaText?: string;
+  ctaUrl?: string;
 }
 
 export interface HomeSelectionItem {
@@ -24,7 +22,6 @@ export interface HomeReviewItem {
 export interface HomePageSettings {
   id: number;
   banner: HomeBannerItem[] | null;
-  runningText: HomeRunningTextItem[] | null;
   categories?: HomeSelectionItem[] | null;
   popularCourses?: HomeSelectionItem[] | null;
   topColleges?: HomeSelectionItem[] | null;
@@ -46,5 +43,14 @@ export const homePageService = {
   async updateSettings(data: Partial<HomePageSettings>) {
     const response = await apiClient.patch<HomePageSettings>("/home-page", data);
     return response.data;
+  },
+
+  async getBanner(): Promise<HomeBannerItem[]> {
+    const response = await apiClient.get<{ banner: HomeBannerItem[] }>("/home-page/banner");
+    return response.data.banner ?? [];
+  },
+
+  async updateBanner(banner: HomeBannerItem[]): Promise<void> {
+    await apiClient.patch("/home-page/banner", { banner });
   },
 };

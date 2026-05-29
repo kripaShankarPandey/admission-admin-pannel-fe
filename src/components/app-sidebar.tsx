@@ -14,6 +14,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  Newspaper,
   Plane,
   Settings,
   Tag,
@@ -92,6 +93,13 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: "Home",
+    items: [
+      { title: "Banner", icon: Layers, url: "/home-settings/banner" },
+      { title: "Latest News", icon: Newspaper, url: "/home-settings/latest-news" },
+    ],
+  },
+  {
     title: "Settings",
     items: [
       { title: "Global Settings", icon: Settings, url: "/settings" },
@@ -126,9 +134,18 @@ export function AppSidebar() {
   const displayEmail = user?.email || "Admin panel";
   const initial = displayName.charAt(0).toUpperCase();
 
+  const allNavUrls = navSections.flatMap((s) => s.items.map((i) => i.url));
+
   const checkActive = (url: string) => {
     if (url === "/") return pathname === "/";
-    return pathname.startsWith(url);
+    const match = pathname === url || pathname.startsWith(url + "/");
+    if (!match) return false;
+    return !allNavUrls.some(
+      (other) =>
+        other !== url &&
+        other.length > url.length &&
+        (pathname === other || pathname.startsWith(other + "/")),
+    );
   };
 
   return (

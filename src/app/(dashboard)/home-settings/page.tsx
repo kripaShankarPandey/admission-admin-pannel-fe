@@ -1,12 +1,10 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BookOpen,
   Building2,
   CheckCircle2,
-  ImagePlus,
-  Megaphone,
   MessageSquareQuote,
   Plus,
   Save,
@@ -39,10 +37,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   homePageService,
-  type HomeBannerItem,
   type HomePageSettings,
   type HomeReviewItem,
-  type HomeRunningTextItem,
   type HomeSelectionItem,
 } from "@/services/home-page-service";
 import {
@@ -61,22 +57,10 @@ const MAX_POPULAR_COURSES = 4;
 const MAX_TOP_COLLEGES = 4;
 
 type ArrayKey =
-  | "banner"
-  | "runningText"
   | "reviews"
   | "categories"
   | "popularCourses"
   | "topColleges";
-
-const emptyRunningText = (): HomeRunningTextItem => ({
-  text: "",
-  featured: false,
-});
-
-const emptyBanner = (): HomeBannerItem => ({
-  title: "",
-  image: "",
-});
 
 const emptyReview = (): HomeReviewItem => ({
   review: "",
@@ -226,8 +210,6 @@ function SelectionEditor({
 
 export default function HomeSettingsPage() {
   const [settings, setSettings] = useState<Partial<HomePageSettings>>({
-    banner: [],
-    runningText: [],
     categories: [],
     popularCourses: [],
     topColleges: [],
@@ -265,10 +247,6 @@ export default function HomeSettingsPage() {
 
       setSettings({
         ...homeSettings,
-        banner: Array.isArray(homeSettings.banner) ? homeSettings.banner : [],
-        runningText: Array.isArray(homeSettings.runningText)
-          ? homeSettings.runningText
-          : [],
         categories: Array.isArray(homeSettings.categories)
           ? homeSettings.categories
           : [],
@@ -319,51 +297,9 @@ export default function HomeSettingsPage() {
     setSettings({ ...settings, [key]: current });
   };
 
-  const addRunningText = () => {
-    const runningText = settings.runningText || [];
-    setSettings({
-      ...settings,
-      runningText: [...runningText, emptyRunningText()],
-    });
-  };
-
-  const addBanner = () => {
-    const banner = settings.banner || [];
-    setSettings({ ...settings, banner: [...banner, emptyBanner()] });
-  };
-
   const addReview = () => {
     const reviews = settings.reviews || [];
     setSettings({ ...settings, reviews: [...reviews, emptyReview()] });
-  };
-
-  const handleBannerImageUpload = (
-    index: number,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file.");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const banner = [...(settings.banner || [])];
-      banner[index] = {
-        ...banner[index],
-        image: reader.result as string,
-      };
-      setSettings({ ...settings, banner });
-    };
-    reader.readAsDataURL(file);
   };
 
   const addSelectionItem = (
@@ -397,14 +333,6 @@ export default function HomeSettingsPage() {
   const selectedTopColleges = useMemo(
     () => (settings.topColleges || []) as HomeSelectionItem[],
     [settings.topColleges],
-  );
-  const bannerItems = useMemo(
-    () => settings.banner || [],
-    [settings.banner],
-  );
-  const runningTextItems = useMemo(
-    () => settings.runningText || [],
-    [settings.runningText],
   );
   const reviewItems = useMemo(
     () => settings.reviews || [],
@@ -486,10 +414,8 @@ export default function HomeSettingsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {[
-          ["Banners", bannerItems.length],
-          ["Running Text", runningTextItems.length],
           ["Categories", selectedCategories.length],
           ["Courses", selectedPopularCourses.length],
           ["Reviews", reviewItems.length],
@@ -507,156 +433,6 @@ export default function HomeSettingsPage() {
           </div>
         ))}
       </div>
-
-      <SectionShell
-        title="Running Text"
-        description="Short announcements shown in the homepage marquee."
-        icon={Megaphone}
-        action={
-          <Button variant="outline" size="sm" onClick={addRunningText}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Text
-          </Button>
-        }
-      >
-        {runningTextItems.length === 0 ? (
-          <EmptyState label="No running text added yet." />
-        ) : (
-          <div className="space-y-3">
-            {runningTextItems.map((item, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-1 gap-4 rounded-lg border border-border/60 bg-background p-4 lg:grid-cols-[1fr_180px_40px]"
-              >
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Text
-                  </Label>
-                  <Input
-                    value={item.text}
-                    onChange={(event) =>
-                      updateArrayItem("runningText", index, {
-                        ...item,
-                        text: event.target.value,
-                      })
-                    }
-                    placeholder="Admission alerts, deadlines, or updates"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Featured
-                  </Label>
-                  <Select
-                    value={item.featured ? "Yes" : "No"}
-                    onValueChange={(value) =>
-                      updateArrayItem("runningText", index, {
-                        ...item,
-                        featured: value === "Yes",
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Featured?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Yes">Yes</SelectItem>
-                      <SelectItem value="No">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="self-end text-destructive hover:text-destructive"
-                  onClick={() => removeArrayItem("runningText", index)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionShell>
-
-      <SectionShell
-        title="Hero Banners"
-        description="Upload homepage banner images and set concise titles."
-        icon={ImagePlus}
-        action={
-          <Button variant="outline" size="sm" onClick={addBanner}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Banner
-          </Button>
-        }
-      >
-        {bannerItems.length === 0 ? (
-          <EmptyState label="No banners added yet." />
-        ) : (
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            {bannerItems.map((item, index) => (
-              <div
-                key={index}
-                className="overflow-hidden rounded-lg border border-border/60 bg-background"
-              >
-                <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-[180px_1fr_40px]">
-                  <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md border border-dashed border-border/70 bg-muted/20">
-                    {item.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={item.image}
-                        alt={item.title || `Banner ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">
-                        Image Title
-                      </Label>
-                      <Input
-                        value={item.title}
-                        onChange={(event) =>
-                          updateArrayItem("banner", index, {
-                            ...item,
-                            title: event.target.value,
-                          })
-                        }
-                        placeholder="Banner title"
-                      />
-                    </div>
-                    <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border/70 bg-card text-sm font-medium text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary">
-                      <ImagePlus className="h-4 w-4" />
-                      Upload Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(event) =>
-                          handleBannerImageUpload(index, event)
-                        }
-                      />
-                    </label>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => removeArrayItem("banner", index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionShell>
 
       <SelectionEditor
         title="Homepage Categories"
