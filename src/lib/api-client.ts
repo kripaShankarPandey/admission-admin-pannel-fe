@@ -2,14 +2,8 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.trim();
-
-if (!API_URL) {
-  throw new Error("Missing required environment variable: NEXT_PUBLIC_API_URL");
-}
-
 export const apiClient = axios.create({
-  baseURL: API_URL.replace(/\/+$/, ""),
+  baseURL: "/api/proxy",
   headers: {
     "Content-Type": "application/json",
   },
@@ -59,7 +53,7 @@ apiClient.interceptors.response.use(
         "Server Error: Something went wrong on our end. Please contact support.",
       );
     } else if (error.code === "ERR_NETWORK") {
-      toast.error("Network Error: Please check your internet connection.");
+      toast.error("Backend unavailable. Please check the API server.");
     } else {
       // Avoid showing toasts for login errors here as they are handled in the LoginPage
       if (

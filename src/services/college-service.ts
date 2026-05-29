@@ -164,6 +164,13 @@ export const collegeService = {
     return response.data;
   },
 
+  async downloadBulkUploadTemplate() {
+    const response = await apiClient.get<Blob>("/college/bulk-upload-template", {
+      responseType: "blob",
+    });
+    return response.data;
+  },
+
   async update(id: number, data: Partial<College>) {
     const response = await apiClient.put<College>(`/college/${id}`, data);
     return response.data;

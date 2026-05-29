@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { blogService } from "@/services/blog-service";
@@ -21,22 +22,26 @@ const getApiErrorMessage = (error: unknown) => {
 
 export default function NewBlogPage() {
   const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (payload: BlogEditorPayload) => {
     try {
+      setIsSaving(true);
       await blogService.create(payload);
       toast.success("Blog post created successfully.");
       router.push("/blogs");
     } catch (error) {
       console.error("Failed to create blog:", error);
       toast.error(getApiErrorMessage(error));
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <BlogEditor
       mode="create"
-      isSaving={false}
+      isSaving={isSaving}
       onCancel={() => router.push("/blogs")}
       onSubmit={handleSubmit}
     />

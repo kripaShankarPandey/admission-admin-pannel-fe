@@ -19,6 +19,10 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Save, Upload, X, Plus, Tag } from "lucide-react";
 import { toast } from "sonner";
+import {
+  estimateJsonPayloadSize,
+  optimizeImageFileToDataUrl,
+} from "@/lib/client-image";
 
 export type BlogEditorValues = {
   title: string;
@@ -127,18 +131,24 @@ export function BlogEditor({
   };
 
   const handleBannerUpload = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const base64 = loadEvent.target?.result as string;
-        setBannerPreview(base64);
-        setValue("banner", base64);
-      };
-      reader.readAsDataURL(file);
       event.target.value = "";
+
+      try {
+        const optimizedImage = await optimizeImageFileToDataUrl(file, {
+          maxWidth: 1600,
+          maxHeight: 900,
+          quality: 0.82,
+        });
+        setBannerPreview(optimizedImage);
+        setValue("banner", optimizedImage);
+      } catch (error) {
+        console.error("Failed to process blog banner:", error);
+        toast.error("Failed to process the selected image.");
+      }
     },
     [setValue],
   );
@@ -160,11 +170,13 @@ export function BlogEditor({
         .replace(/(^-|-$)+/g, "");
       const created = await blogCategoryService.create({ name, slug });
       setCategories((prev) =>
-        [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
+        [...prev.filter((category) => category.id !== created.id), created].sort(
+          (a, b) => a.name.localeCompare(b.name),
+        ),
       );
       setValue("categoryId", String(created.id));
       setNewCategoryName("");
-      toast.success("Blog category created.");
+      toast.success("Blog category ready.");
     } catch (error) {
       console.error("Failed to create blog category:", error);
       toast.error("Failed to create blog category.");
@@ -186,6 +198,16 @@ export function BlogEditor({
       categoryId: data.categoryId ? Number(data.categoryId) : undefined,
       publishedAt: data.published ? new Date().toISOString() : undefined,
     };
+
+    const payloadSize = estimateJsonPayloadSize(payload);
+    const maxPayloadSize = 18 * 1024 * 1024;
+
+    if (payloadSize > maxPayloadSize) {
+      toast.error(
+        "This blog is too large to save right now. Please reduce embedded images or banner size.",
+      );
+      return;
+    }
 
     await onSubmit(payload);
   };

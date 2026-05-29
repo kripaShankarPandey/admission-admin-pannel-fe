@@ -2,7 +2,6 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import { TextStyle } from "@tiptap/extension-text-style";
@@ -38,6 +37,8 @@ import {
     Upload,
 } from "lucide-react";
 import { useCallback, useRef } from "react";
+import { toast } from "sonner";
+import { optimizeImageFileToDataUrl } from "@/lib/client-image";
 
 interface RichTextEditorProps {
     content: string;
@@ -66,7 +67,6 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
                 blockquote: { HTMLAttributes: { class: "border-l-4 border-primary/30 pl-4 italic text-muted-foreground" } },
                 codeBlock: { HTMLAttributes: { class: "bg-muted rounded-lg p-4 font-mono text-sm" } },
             }),
-            Underline,
             TextAlign.configure({ types: ["heading", "paragraph"] }),
             Highlight.configure({ multicolor: true }),
             TextStyle,
@@ -95,17 +95,22 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     }, []);
 
     const handleFileChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
             const file = e.target.files?.[0];
             if (!file || !editor) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const base64 = event.target?.result as string;
-                editor.chain().focus().setImage({ src: base64 }).run();
-            };
-            reader.readAsDataURL(file);
             e.target.value = "";
+
+            try {
+                const optimizedImage = await optimizeImageFileToDataUrl(file, {
+                    maxWidth: 1400,
+                    maxHeight: 1400,
+                    quality: 0.8,
+                });
+                editor.chain().focus().setImage({ src: optimizedImage }).run();
+            } catch (error) {
+                console.error("Failed to process editor image:", error);
+                toast.error("Failed to process the selected image.");
+            }
         },
         [editor]
     );
