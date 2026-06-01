@@ -30,6 +30,24 @@ export interface HomePageSettings {
     metaTitle?: string;
     metaDescription?: string;
   } | null;
+  seoContent?: {
+    title?: string;
+    introParagraph1?: string;
+    introParagraph2?: string;
+    disclaimer?: string;
+    topics?: {
+      heading: string;
+      links: { label: string; href: string }[];
+    }[];
+    cities?: {
+      city: string;
+      href: string;
+    }[];
+    directoryTitle?: string;
+    directorySubtitle?: string;
+    quickLinks?: { label: string; href: string }[];
+    examLinks?: { label: string; href: string }[];
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

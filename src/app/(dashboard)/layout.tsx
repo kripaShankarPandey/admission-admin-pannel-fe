@@ -14,6 +14,7 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { RouteGuard } from "@/components/route-guard";
 
 export default function DashboardLayout({
     children,
@@ -36,7 +37,9 @@ export default function DashboardLayout({
                 </header>
                 <div className="flex flex-1 flex-col gap-4 p-6 overflow-auto">
                     <ErrorBoundary>
-                        {children}
+                        <RouteGuard>
+                            {children}
+                        </RouteGuard>
                     </ErrorBoundary>
                 </div>
             </SidebarInset>

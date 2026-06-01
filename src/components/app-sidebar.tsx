@@ -17,6 +17,7 @@ import {
   Newspaper,
   Plane,
   Settings,
+  ShieldCheck,
   Tag,
   TrainFront,
   UserCircle,
@@ -48,6 +49,7 @@ type NavItem = {
   title: string;
   icon: ComponentType<{ className?: string }>;
   url: string;
+  permission?: string;
 };
 
 type NavSection = {
@@ -61,49 +63,51 @@ const navSections: NavSection[] = [
     items: [{ title: "Dashboard", icon: LayoutDashboard, url: "/" }],
   },
   {
+    title: "Home",
+    items: [
+      { title: "Banner", icon: Layers, url: "/home-settings/banner", permission: "home-page" },
+      { title: "Latest News", icon: Newspaper, url: "/home-settings/latest-news", permission: "latest-news" },
+      { title: "SEO Content", icon: FileText, url: "/home-settings/seo-content", permission: "home-page" },
+    ],
+  },
+  {
     title: "Content",
     items: [
-      { title: "Blog", icon: FileText, url: "/blogs" },
-      { title: "Blog Categories", icon: Tag, url: "/blog-categories" },
-      { title: "College", icon: GraduationCap, url: "/colleges" },
-      { title: "City", icon: MapPin, url: "/cities" },
-      { title: "Discipline", icon: Layers, url: "/discipline" },
-      { title: "Courses", icon: Layers, url: "/courses" },
+      { title: "Blog", icon: FileText, url: "/blogs", permission: "blogs" },
+      { title: "Blog Categories", icon: Tag, url: "/blog-categories", permission: "blogs" },
+      { title: "College", icon: GraduationCap, url: "/colleges", permission: "colleges" },
+      { title: "City", icon: MapPin, url: "/cities", permission: "cities" },
+      { title: "Discipline", icon: Layers, url: "/discipline", permission: "courses" },
+      { title: "Courses", icon: Layers, url: "/courses", permission: "courses" },
     ],
   },
   {
     title: "Leads & People",
     items: [
-      { title: "Contact Leads", icon: Mail, url: "/contact-leads" },
-      { title: "Counselors", icon: Users, url: "/counselors" },
-      { title: "Newsletter", icon: Bell, url: "/newsletter-leads" },
-      { title: "Users", icon: UserCircle, url: "/users" },
+      { title: "Contact Leads", icon: Mail, url: "/contact-leads", permission: "contact-leads" },
+      { title: "Counselors", icon: Users, url: "/counselors", permission: "counselors" },
+      { title: "Newsletter", icon: Bell, url: "/newsletter-leads", permission: "newsletter-leads" },
+      { title: "Website Users", icon: UserCircle, url: "/users", permission: "website-users" },
     ],
   },
   {
     title: "Reach Us",
     items: [
-      { title: "Airport", icon: Plane, url: "/reach-us/airport" },
-      { title: "Bus Station", icon: Bus, url: "/reach-us/bus-station" },
+      { title: "Airport", icon: Plane, url: "/reach-us/airport", permission: "reach-us" },
+      { title: "Bus Station", icon: Bus, url: "/reach-us/bus-station", permission: "reach-us" },
       {
         title: "Railway Station",
         icon: TrainFront,
         url: "/reach-us/railway-station",
+        permission: "reach-us",
       },
-    ],
-  },
-  {
-    title: "Home",
-    items: [
-      { title: "Banner", icon: Layers, url: "/home-settings/banner" },
-      { title: "Latest News", icon: Newspaper, url: "/home-settings/latest-news" },
     ],
   },
   {
     title: "Settings",
     items: [
-      { title: "Global Settings", icon: Settings, url: "/settings" },
-      { title: "Home Settings", icon: Home, url: "/home-settings" },
+      { title: "Global Settings", icon: Settings, url: "/settings", permission: "settings" },
+      { title: "Admin Users", icon: ShieldCheck, url: "/settings/admin-users" },
     ],
   },
 ];
@@ -123,6 +127,8 @@ export function AppSidebar() {
         name?: string;
         username?: string;
         email: string;
+        role: string;
+        permissions?: string[];
       };
     } catch (error) {
       console.error("Failed to parse admin_user", error);
@@ -130,11 +136,40 @@ export function AppSidebar() {
     }
   }, [storedUser]);
 
+  const filteredNavSections = useMemo(() => {
+    if (!user) return [];
+    if (user.role === "super_admin") {
+      return navSections;
+    }
+
+    const userPermissions = user.permissions || [];
+
+    return navSections
+      .map((section) => {
+        const items = section.items.filter((item) => {
+          // Dashboard is always visible to logged-in users
+          if (item.url === "/") return true;
+
+          // If item requires specific section permission, check if user has it
+          if (item.permission) {
+            return userPermissions.includes(item.permission);
+          }
+
+          // If item doesn't have a permission key (like "Users"), it is super-admin only
+          return false;
+        });
+        return { ...section, items };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [user]);
+
   const displayName = user?.name || user?.username || "Super Admin";
   const displayEmail = user?.email || "Admin panel";
   const initial = displayName.charAt(0).toUpperCase();
 
-  const allNavUrls = navSections.flatMap((s) => s.items.map((i) => i.url));
+  const allNavUrls = useMemo(() => {
+    return filteredNavSections.flatMap((s) => s.items.map((i) => i.url));
+  }, [filteredNavSections]);
 
   const checkActive = (url: string) => {
     if (url === "/") return pathname === "/";
@@ -171,7 +206,7 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2 pb-3 scrollbar-none">
-        {navSections.map((section) => (
+        {filteredNavSections.map((section) => (
           <SidebarGroup key={section.title} className="py-2">
             <div className="mb-1.5 flex items-center justify-between px-3 group-data-[collapsible=icon]:hidden">
               <span className="text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/45">

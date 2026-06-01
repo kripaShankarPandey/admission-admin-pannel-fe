@@ -8,6 +8,7 @@ import {
   globalSettingsService,
   type GlobalSettings,
 } from "@/services/global-settings-service";
+import { homePageService } from "@/services/home-page-service";
 import { optimizeImageFileToDataUrl } from "@/lib/client-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import {
   Upload,
   X,
   Info,
+  Search,
+  ExternalLink,
 } from "lucide-react";
 
 type FormValues = Omit<GlobalSettings, "id" | "updatedAt" | "defaultSeo">;
@@ -148,6 +151,16 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  // ── Home Page SEO state (independent) ──
+  const [seoLoading, setSeoLoading] = useState(true);
+  const [seoSaving, setSeoSaving] = useState(false);
+  const [seoData, setSeoData] = useState({
+    metaTitle: "",
+    metaDescription: "",
+    keywords: "",
+    ogImage: "",
+  });
+
   const { register, handleSubmit, reset, watch, setValue } = useForm<FormValues>({
     defaultValues: {
       siteName: "",
@@ -205,7 +218,47 @@ export default function SettingsPage() {
     }
   }, [reset]);
 
-  useEffect(() => { loadSettings(); }, [loadSettings]);
+  const loadSeoSettings = useCallback(async () => {
+    try {
+      const home = await homePageService.getSettings();
+      const s = home.seoData as Record<string, string> | null | undefined;
+      setSeoData({
+        metaTitle: s?.metaTitle ?? "",
+        metaDescription: s?.metaDescription ?? "",
+        keywords: s?.keywords ?? "",
+        ogImage: s?.ogImage ?? "",
+      });
+    } catch {
+      toast.error("Failed to load home page SEO data.");
+    } finally {
+      setSeoLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+    loadSeoSettings();
+  }, [loadSettings, loadSeoSettings]);
+
+  const saveSeo = async () => {
+    setSeoSaving(true);
+    try {
+      await homePageService.updateSettings({
+        seoData: {
+          metaTitle: seoData.metaTitle || null,
+          metaDescription: seoData.metaDescription || null,
+          keywords: seoData.keywords || null,
+          ogImage: seoData.ogImage || null,
+        } as any,
+      });
+      toast.success("Home page SEO saved. The frontend will reflect changes within ~5 minutes (ISR).");
+    } catch {
+      toast.error("Failed to save home page SEO.");
+    } finally {
+      setSeoSaving(false);
+    }
+  };
+
 
   const onSubmit = async (values: FormValues) => {
     setIsSaving(true);
@@ -231,6 +284,10 @@ export default function SettingsPage() {
     );
   }
 
+  const titleLen = seoData.metaTitle.length;
+  const descLen = seoData.metaDescription.length;
+
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-10">
       {/* Header */}
@@ -254,7 +311,124 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* ── Site Identity ── */}
+      {/* ── Home Page SEO ── */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex items-center gap-3 border-b border-border/60 bg-muted/20 px-5 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-card text-primary">
+            <Search className="h-4 w-4" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold text-foreground">Home Page SEO</h2>
+            <p className="text-xs text-muted-foreground">Meta title & description shown in Google search results and browser tabs.</p>
+          </div>
+          <a
+            href="http://localhost:3001"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Preview frontend
+          </a>
+        </div>
+        <div className="p-5 space-y-5">
+          {/* Google SERP preview */}
+          {(seoData.metaTitle || seoData.metaDescription) && (
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Google Preview</p>
+              <p className="text-[17px] font-medium text-blue-600 hover:underline cursor-pointer leading-tight">
+                {seoData.metaTitle || "Page Title"}
+              </p>
+              <p className="text-[13px] text-green-700">
+                admissiontoday.in
+              </p>
+              <p className="text-[13px] text-gray-600 leading-snug">
+                {seoData.metaDescription || "Page description will appear here…"}
+              </p>
+            </div>
+          )}
+
+          {seoLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              Loading SEO data…
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Meta Title</Label>
+                  <span className={`text-[11px] font-medium ${
+                    titleLen > 60 ? "text-destructive" : titleLen > 50 ? "text-amber-500" : "text-muted-foreground"
+                  }`}>{titleLen}/60</span>
+                </div>
+                <Input
+                  value={seoData.metaTitle}
+                  onChange={(e) => setSeoData((p) => ({ ...p, metaTitle: e.target.value }))}
+                  placeholder="Admission Today — Find Your Perfect College in India"
+                />
+                <p className="text-[11px] text-muted-foreground">Appears in the browser tab and Google search title. Keep under 60 characters.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">Meta Description</Label>
+                  <span className={`text-[11px] font-medium ${
+                    descLen > 160 ? "text-destructive" : descLen > 140 ? "text-amber-500" : "text-muted-foreground"
+                  }`}>{descLen}/160</span>
+                </div>
+                <Textarea
+                  value={seoData.metaDescription}
+                  onChange={(e) => setSeoData((p) => ({ ...p, metaDescription: e.target.value }))}
+                  rows={3}
+                  placeholder="India's trusted platform for NEET, JEE, CAT & CLAT college admissions. Get free expert counselling and explore 500+ top colleges."
+                />
+                <p className="text-[11px] text-muted-foreground">Shown in Google search snippets. Keep between 120–160 characters for best SEO.</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Keywords</Label>
+                  <Input
+                    value={seoData.keywords}
+                    onChange={(e) => setSeoData((p) => ({ ...p, keywords: e.target.value }))}
+                    placeholder="college admission, NEET 2026, JEE, MBA, MBBS"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Comma-separated keywords (optional, minor SEO signal).</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">OG Image URL</Label>
+                  <Input
+                    value={seoData.ogImage}
+                    onChange={(e) => setSeoData((p) => ({ ...p, ogImage: e.target.value }))}
+                    placeholder="https://admissiontoday.in/og-image.jpg"
+                  />
+                  <p className="text-[11px] text-muted-foreground">Social share preview image (1200×630 px recommended).</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-start gap-1.5 rounded-lg bg-muted/50 p-2.5 flex-1 mr-4">
+                  <Info className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground">
+                    Changes are live on the frontend within ~5 minutes (ISR revalidation). Force refresh with <code className="font-mono bg-muted px-1 rounded">revalidate=0</code> in dev.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={saveSeo}
+                  disabled={seoSaving}
+                  className="gap-2 shrink-0"
+                >
+                  <Save className="h-4 w-4" />
+                  {seoSaving ? "Saving…" : "Save SEO"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <Section icon={Globe} title="Site Identity" description="Brand name, logo, favicon, and SEO description.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldRow label="Site Name *">

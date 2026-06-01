@@ -8,8 +8,8 @@ export const authService = {
     const response = await apiClient.post("/auth/login", credentials);
     const { access_token, user } = response.data;
     
-    if (user?.role !== "super_admin") {
-      throw new Error("Access denied: You must be a Super Admin to access this panel.");
+    if (user?.role !== "super_admin" && user?.role !== "editor") {
+      throw new Error("Access denied: You must be a Super Admin or Editor to access this panel.");
     }
     
     if (access_token) {
