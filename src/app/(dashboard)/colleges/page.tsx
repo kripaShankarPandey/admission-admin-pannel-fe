@@ -858,7 +858,7 @@ export default function CollegesPage() {
                   <TableCell>
                     <div
                       className="font-semibold text-foreground text-[13px] cursor-pointer hover:text-primary transition-colors max-w-[220px] truncate"
-                      onClick={() => router.push(`/colleges/${college.id}`)}
+                      onClick={() => router.push(`/colleges/${college.slug || college.id}`)}
                       title={college.college_name}
                     >
                       {college.college_name || "Unknown"}
@@ -945,7 +945,7 @@ export default function CollegesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/colleges/${college.id}`)}
+                        onClick={() => router.push(`/colleges/${college.slug || college.id}`)}
                         className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Edit"
                       >

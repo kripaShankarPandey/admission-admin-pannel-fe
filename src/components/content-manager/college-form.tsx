@@ -249,6 +249,7 @@ interface CollegeFormValues {
   government_college_aiq_cutoff: GovtAiqCutoff;
   cutoff_nri_enabled: boolean;
   cutoff_nri: RoundCutoff;
+  college_rating: string;
 }
 
 interface CollegeFormProps {
@@ -2094,6 +2095,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
         (initialData as Partial<College> & Record<string, unknown>)
           ?.cutoff_nri as Partial<RoundCutoff>,
       ),
+      college_rating: readString(
+        (initialData as Partial<College> & Record<string, unknown>)
+          ?.college_rating,
+      ),
     }),
     [initialData],
   );
@@ -2129,6 +2134,9 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   const naacValue = useWatch({ control: form.control, name: "naac" });
   const nbaValue = useWatch({ control: form.control, name: "nba" });
   const isFeaturedValue = useWatch({ control: form.control, name: "featured" });
+  const metaTitleValue = useWatch({ control: form.control, name: "meta_title" });
+  const metaDescriptionValue = useWatch({ control: form.control, name: "meta_description" });
+  const slugValue = useWatch({ control: form.control, name: "slug" });
   const admissionCounsellingValue = useWatch({
     control: form.control,
     name: "admission_counselling",
@@ -2513,6 +2521,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       featured: data.featured,
       isFeatured: data.featured,
       priority: Number(data.priority) || 1,
+      college_rating: Number(data.college_rating) || undefined,
       college_type: data.mgmt_type,
       established_year: data.establish_year,
       affiliated_with: data.university_name,
@@ -2856,7 +2865,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           />
         </CardHeader>
         <CardContent className={cardContentCls}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
             <div className="space-y-1.5">
               <FL required>NIRF Rank</FL>
               <Input
@@ -2908,6 +2917,21 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <FL>College Rating (1–5)</FL>
+              <div className="relative">
+                <Star className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-400" />
+                <Input
+                  {...form.register("college_rating")}
+                  type="number"
+                  min="1"
+                  max="5"
+                  step="0.1"
+                  placeholder="4.5"
+                  className={cn(inputCls, "pl-9")}
+                />
+              </div>
             </div>
           </div>
 
@@ -3632,6 +3656,141 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                 placeholder="medical college, mbbs, admissions"
                 className="min-h-[90px] bg-background border-border/50 pl-9 text-sm"
               />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Google Search Preview */}
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Search}
+            title="Google Search Preview"
+            subtitle="How this college appears in Google search results"
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          {/* Preview card */}
+          <div className="rounded-xl border border-border/60 bg-background p-5">
+            {/* Google chrome-bar mockup */}
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2">
+              <div className="flex gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
+              </div>
+              <div className="flex flex-1 items-center gap-2 rounded-md border border-border/40 bg-background px-3 py-1 text-xs text-muted-foreground">
+                <svg className="h-3 w-3 shrink-0 text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                </svg>
+                <span className="truncate font-mono text-[11px]">
+                  google.com/search?q={encodeURIComponent(metaTitleValue || collegeName || "college name")}
+                </span>
+              </div>
+            </div>
+
+            {/* SERP result */}
+            <div className="space-y-1 pl-1">
+              {/* Site + URL row */}
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-white shadow-xs">
+                  <svg viewBox="0 0 48 48" className="h-3.5 w-3.5">
+                    <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                    <path fill="none" d="M0 0h48v48H0z"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-foreground">Admission Today</p>
+                  <p className="truncate font-mono text-[11px] text-muted-foreground">
+                    admissiontoday.com › colleges{slugValue ? ` › ${slugValue}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              {/* Title */}
+              <p className={`text-lg font-normal leading-snug ${metaTitleValue || collegeName ? "text-[#1a0dab]" : "text-muted-foreground/50 italic"} hover:underline cursor-pointer`}>
+                {metaTitleValue || (collegeName ? `${collegeName} — Admission 2026, Fees, Cutoff | Admission Today` : "Meta title will appear here…")}
+              </p>
+
+              {/* Description */}
+              <p className={`text-sm leading-relaxed ${metaDescriptionValue ? "text-[#4d5156]" : "text-muted-foreground/40 italic"}`}>
+                {metaDescriptionValue || "Meta description will appear here. Add a description to improve your click-through rate from search results."}
+              </p>
+            </div>
+          </div>
+
+          {/* Character count indicators */}
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Title Length</span>
+                <span className={`text-[11px] font-bold ${
+                  (metaTitleValue?.length ?? 0) > 60
+                    ? "text-red-500"
+                    : (metaTitleValue?.length ?? 0) >= 50
+                    ? "text-green-600"
+                    : "text-amber-500"
+                }`}>
+                  {metaTitleValue?.length ?? 0} / 60
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    (metaTitleValue?.length ?? 0) > 60
+                      ? "bg-red-500"
+                      : (metaTitleValue?.length ?? 0) >= 50
+                      ? "bg-green-500"
+                      : "bg-amber-400"
+                  }`}
+                  style={{ width: `${Math.min(((metaTitleValue?.length ?? 0) / 60) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                {(metaTitleValue?.length ?? 0) > 60
+                  ? "Too long — Google may truncate"
+                  : (metaTitleValue?.length ?? 0) >= 50
+                  ? "Good length"
+                  : "Aim for 50–60 characters"}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description Length</span>
+                <span className={`text-[11px] font-bold ${
+                  (metaDescriptionValue?.length ?? 0) > 160
+                    ? "text-red-500"
+                    : (metaDescriptionValue?.length ?? 0) >= 120
+                    ? "text-green-600"
+                    : "text-amber-500"
+                }`}>
+                  {metaDescriptionValue?.length ?? 0} / 160
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    (metaDescriptionValue?.length ?? 0) > 160
+                      ? "bg-red-500"
+                      : (metaDescriptionValue?.length ?? 0) >= 120
+                      ? "bg-green-500"
+                      : "bg-amber-400"
+                  }`}
+                  style={{ width: `${Math.min(((metaDescriptionValue?.length ?? 0) / 160) * 100, 100)}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                {(metaDescriptionValue?.length ?? 0) > 160
+                  ? "Too long — Google may truncate"
+                  : (metaDescriptionValue?.length ?? 0) >= 120
+                  ? "Good length"
+                  : "Aim for 120–160 characters"}
+              </p>
             </div>
           </div>
         </CardContent>

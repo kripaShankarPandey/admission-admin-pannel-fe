@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, Trash2, ArrowLeft, UploadCloud, GripVertical, Image as ImageIcon } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, UploadCloud, GripVertical, Image as ImageIcon, Search } from "lucide-react";
 
 // Helper function to convert file to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -62,6 +62,9 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
             careers: [{ name: "", salary: "" }],
             topColleges: [{ name: "", location: "", rating: "", type: "Private", fees: "", buttonUrl: "" }],
             keyFacts: [{ name: "" }],
+            meta_title: "",
+            meta_description: "",
+            keywords: "",
         },
     });
 
@@ -77,6 +80,9 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
 
     // Auto-generate slug
     const nameWatch = watch("name");
+    const metaTitleWatch = watch("meta_title");
+    const metaDescriptionWatch = watch("meta_description");
+    const slugWatch = watch("slug");
     useEffect(() => {
         if (!courseId && nameWatch) {
             setValue("slug", nameWatch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
@@ -126,6 +132,9 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     careers: (details as any).overview?.careers?.length ? (details as any).overview.careers : [{ name: "", salary: "" }],
                     topColleges: (details as any).overview?.topColleges?.length ? (details as any).overview.topColleges : [{ name: "", location: "", rating: "", type: "Private", fees: "", buttonUrl: "" }],
                     keyFacts: (details as any).keyFacts?.length ? (details as any).keyFacts : [{ name: "" }],
+                    meta_title: (details as any).seo?.meta_title || "",
+                    meta_description: (details as any).seo?.meta_description || "",
+                    keywords: (details as any).seo?.keywords || "",
                 });
             }).catch(err => {
                 console.error(err);
@@ -163,6 +172,11 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     topColleges: data.topColleges,
                 },
                 keyFacts: data.keyFacts,
+                seo: {
+                    meta_title: data.meta_title,
+                    meta_description: data.meta_description,
+                    keywords: data.keywords,
+                },
             };
 
             const payload: Partial<SubCourseCategory> = {
@@ -583,6 +597,147 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                             <Button type="button" variant="outline" size="sm" onClick={() => keyFactFields.append({ name: "" })}>
                                 <Plus className="h-4 w-4 mr-2" /> Add Fact
                             </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* SEO & Google Preview */}
+                    <Card className="shadow-sm border-border/50">
+                        <CardHeader className="bg-muted/20 border-b border-border/50 pb-4">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Search className="h-5 w-5 text-primary" />
+                                SEO & Google Preview
+                            </CardTitle>
+                            <CardDescription>Search engine metadata and live preview of how this page appears in Google</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6 pt-6">
+                            {/* SEO Fields */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <FormField control={control} name="meta_title" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Meta Title</FormLabel>
+                                        <FormControl><Input placeholder="SEO title — keep under 60 characters" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name="meta_description" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Meta Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Short SEO description — keep under 160 characters"
+                                                className="min-h-[90px] resize-y bg-background"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={control} name="keywords" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Keywords</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="anm nursing, anm course fees, anm admission 2026"
+                                                className="min-h-[70px] resize-y bg-background"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+
+                            {/* Google Search Preview */}
+                            <div className="space-y-3">
+                                <p className="text-sm font-semibold text-foreground">Live Preview</p>
+                                <div className="rounded-xl border border-border/60 bg-background p-5">
+                                    {/* Chrome bar mockup */}
+                                    <div className="mb-4 flex items-center gap-2 rounded-lg border border-border/50 bg-muted/30 px-3 py-2">
+                                        <div className="flex gap-1.5">
+                                            <span className="h-2.5 w-2.5 rounded-full bg-red-400/70" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400/70" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
+                                        </div>
+                                        <div className="flex flex-1 items-center gap-2 rounded-md border border-border/40 bg-background px-3 py-1 text-xs text-muted-foreground">
+                                            <Search className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+                                            <span className="truncate font-mono text-[11px]">
+                                                google.com/search?q={encodeURIComponent(metaTitleWatch || watch("name") || "course name")}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* SERP result */}
+                                    <div className="space-y-1 pl-1">
+                                        {/* Site + URL */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-white shadow-xs">
+                                                <svg viewBox="0 0 48 48" className="h-3.5 w-3.5">
+                                                    <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                                    <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                                    <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                                    <path fill="none" d="M0 0h48v48H0z"/>
+                                                </svg>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="truncate text-xs font-medium text-foreground">Admission Today</p>
+                                                <p className="truncate font-mono text-[11px] text-muted-foreground">
+                                                    admissiontoday.com › courses{slugWatch ? ` › ${slugWatch}` : ""}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Title */}
+                                        <p className={`text-lg font-normal leading-snug ${metaTitleWatch || watch("name") ? "text-[#1a0dab]" : "text-muted-foreground/50 italic"} hover:underline cursor-pointer`}>
+                                            {metaTitleWatch || (watch("name") ? `${watch("name")} — Fees, Colleges, Career 2026 | Admission Today` : "Meta title will appear here…")}
+                                        </p>
+
+                                        {/* Description */}
+                                        <p className={`text-sm leading-relaxed ${metaDescriptionWatch ? "text-[#4d5156]" : "text-muted-foreground/40 italic"}`}>
+                                            {metaDescriptionWatch || "Meta description will appear here. Add a description to improve your click-through rate from search results."}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Character count bars */}
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                    <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Title Length</span>
+                                            <span className={`text-[11px] font-bold ${(metaTitleWatch?.length ?? 0) > 60 ? "text-red-500" : (metaTitleWatch?.length ?? 0) >= 50 ? "text-green-600" : "text-amber-500"}`}>
+                                                {metaTitleWatch?.length ?? 0} / 60
+                                            </span>
+                                        </div>
+                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
+                                            <div
+                                                className={`h-full rounded-full transition-all ${(metaTitleWatch?.length ?? 0) > 60 ? "bg-red-500" : (metaTitleWatch?.length ?? 0) >= 50 ? "bg-green-500" : "bg-amber-400"}`}
+                                                style={{ width: `${Math.min(((metaTitleWatch?.length ?? 0) / 60) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                        <p className="mt-1.5 text-[10px] text-muted-foreground">
+                                            {(metaTitleWatch?.length ?? 0) > 60 ? "Too long — Google may truncate" : (metaTitleWatch?.length ?? 0) >= 50 ? "Good length" : "Aim for 50–60 characters"}
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description Length</span>
+                                            <span className={`text-[11px] font-bold ${(metaDescriptionWatch?.length ?? 0) > 160 ? "text-red-500" : (metaDescriptionWatch?.length ?? 0) >= 120 ? "text-green-600" : "text-amber-500"}`}>
+                                                {metaDescriptionWatch?.length ?? 0} / 160
+                                            </span>
+                                        </div>
+                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
+                                            <div
+                                                className={`h-full rounded-full transition-all ${(metaDescriptionWatch?.length ?? 0) > 160 ? "bg-red-500" : (metaDescriptionWatch?.length ?? 0) >= 120 ? "bg-green-500" : "bg-amber-400"}`}
+                                                style={{ width: `${Math.min(((metaDescriptionWatch?.length ?? 0) / 160) * 100, 100)}%` }}
+                                            />
+                                        </div>
+                                        <p className="mt-1.5 text-[10px] text-muted-foreground">
+                                            {(metaDescriptionWatch?.length ?? 0) > 160 ? "Too long — Google may truncate" : (metaDescriptionWatch?.length ?? 0) >= 120 ? "Good length" : "Aim for 120–160 characters"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
