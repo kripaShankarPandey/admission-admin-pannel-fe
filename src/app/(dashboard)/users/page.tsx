@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -60,6 +61,73 @@ export default function UsersPage() {
   );
 
   return (
+    <>
+    {selectedUser && (
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground">User Details</h2>
+            <button
+              onClick={() => setSelectedUser(null)}
+              className="p-1 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X className="h-5 w-5 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="px-6 py-5 space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">ID</label>
+              <p className="text-sm text-foreground">{selectedUser.id}</p>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Username</label>
+              <p className="text-sm text-foreground">{selectedUser.username || '—'}</p>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Email</label>
+              <a href={`mailto:${selectedUser.email}`} className="text-sm text-primary hover:underline">{selectedUser.email}</a>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Status</label>
+              <div>
+                {selectedUser.confirmed ? (
+                  <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px] font-bold uppercase">
+                    Confirmed
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] font-bold uppercase">
+                    Pending
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Registered</label>
+              <p className="text-sm text-foreground">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : '—'}</p>
+            </div>
+            <div className="pt-4 border-t border-border flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setSelectedUser(null)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={() => {
+                  handleDelete(selectedUser.id);
+                  setSelectedUser(null);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     <ListingLayout
       title="Website Users"
       description="View and manage standard registered user accounts on the website."
@@ -97,7 +165,8 @@ export default function UsersPage() {
             filteredUsers.map((user) => (
               <TableRow
                 key={user.id}
-                className="group hover:bg-muted/50 border-b border-border/50"
+                className="group hover:bg-muted/50 border-b border-border/50 cursor-pointer"
+                onClick={() => setSelectedUser(user)}
               >
                 <TableCell className="text-muted-foreground font-medium text-[13px]">
                   #{user.id}
@@ -125,7 +194,7 @@ export default function UsersPage() {
                 <TableCell className="text-muted-foreground text-[13px]">
                   {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -143,5 +212,6 @@ export default function UsersPage() {
         </TableBody>
       </Table>
     </ListingLayout>
+    </>
   );
 }

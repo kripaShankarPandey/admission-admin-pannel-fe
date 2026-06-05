@@ -17,8 +17,9 @@ export interface NewsletterLead {
 
 export const leadService = {
   async getContactLeads() {
-    const response = await apiClient.get<ContactLead[]>("/contact-us");
-    return response.data;
+    const response = await apiClient.get<{ data: ContactLead[] } | ContactLead[]>("/contact-us");
+    const payload = response.data;
+    return Array.isArray(payload) ? payload : (payload.data ?? []);
   },
 
   async deleteContactLead(id: number) {
@@ -27,8 +28,9 @@ export const leadService = {
   },
 
   async getNewsletterLeads() {
-    const response = await apiClient.get<NewsletterLead[]>("/newsletter-subscribe");
-    return response.data;
+    const response = await apiClient.get<{ data: NewsletterLead[] } | NewsletterLead[]>("/newsletter-subscribe");
+    const payload = response.data;
+    return Array.isArray(payload) ? payload : (payload.data ?? []);
   },
 
   async deleteNewsletterLead(id: number) {

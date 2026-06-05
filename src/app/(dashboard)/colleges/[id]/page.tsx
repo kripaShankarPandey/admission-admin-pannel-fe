@@ -43,32 +43,32 @@ export default function EditCollegePage({ params }: EditCollegePageProps) {
         fetchCollege();
     }, [id, router]);
 
+    const [isPublishing, setIsPublishing] = useState(false);
+
     const handleSave = async (data: Partial<College> & Record<string, unknown>) => {
         if (!college) return;
         try {
-            await collegeService.update(college.id, data);
-            toast.success("College updated successfully");
+            const payload = { ...data };
+            if (isPublishing) {
+                payload.publishedAt = new Date().toISOString();
+                setIsPublishing(false);
+            }
+            await collegeService.update(college.id, payload);
+            toast.success(isPublishing ? "College published successfully" : "College updated successfully");
             router.push("/colleges");
         } catch (error) {
-            console.error("Error updating college:", error);
-            toast.error("Failed to update college");
+            console.error("Error saving college:", error);
+            const errMsg = error && typeof error === "object" && "response" in error
+                ? (error as any).response?.data?.message || "Failed to save college"
+                : "Failed to save college";
+            toast.error(Array.isArray(errMsg) ? errMsg.join(", ") : String(errMsg));
+            setIsPublishing(false);
         }
     };
 
     const handlePublish = async () => {
-        if (!college) return;
-        try {
-            await collegeService.update(college.id, {
-                publishedAt: new Date().toISOString(),
-            });
-            setCollege((prev) => prev ? { ...prev, publishedAt: new Date().toISOString() } : prev);
-            toast.success("College published successfully");
-            document.getElementById("college-form")?.dispatchEvent(
-                new Event("submit", { bubbles: true, cancelable: true })
-            );
-        } catch {
-            toast.error("Failed to publish college");
-        }
+        setIsPublishing(true);
+        submitForm();
     };
 
     const submitForm = () => {

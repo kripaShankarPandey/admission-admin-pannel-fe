@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { counselorService, type Counselor } from "@/services/counselor-service";
 import {
     Table,
@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Trash2, User } from "lucide-react";
+import { Edit, Trash2, User, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
@@ -55,6 +55,8 @@ export default function CounselorsPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingCounselor, setEditingCounselor] = useState<Counselor | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const debouncedSearch = useDebounce(search, 500);
 
@@ -93,6 +95,7 @@ export default function CounselorsPage() {
     const handleOpenDialog = (counselor: Counselor | null = null) => {
         if (counselor) {
             setEditingCounselor(counselor);
+            setImagePreview(counselor.profile || "");
             form.reset({
                 name: counselor.name || "",
                 designation: counselor.designation || "",
@@ -101,6 +104,7 @@ export default function CounselorsPage() {
             });
         } else {
             setEditingCounselor(null);
+            setImagePreview("");
             form.reset({
                 name: "",
                 designation: "",
@@ -109,6 +113,24 @@ export default function CounselorsPage() {
             });
         }
         setIsDialogOpen(true);
+    };
+
+    const handleImageUrlChange = (url: string) => {
+        setImagePreview(url);
+        form.setValue("profile", url);
+    };
+
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                setImagePreview(dataUrl);
+                form.setValue("profile", dataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const onSubmit = async (data: CounselorFormValues) => {
@@ -223,69 +245,140 @@ export default function CounselorsPage() {
             </ListingLayout>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-md bg-background border-border text-foreground">
+                <DialogContent className="max-w-4xl! w-full bg-background border-border text-foreground max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle className="text-foreground">{editingCounselor ? "Edit Counselor" : "Add New Counselor"}</DialogTitle>
+                        <DialogTitle className="text-lg font-bold text-foreground">{editingCounselor ? "Edit Counselor" : "Add New Counselor"}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-foreground">Name</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Enter counselor name" {...field} className="bg-background border-border text-foreground" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="designation"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-foreground">Designation</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Enter designation (e.g. Senior Consultant)" {...field} className="bg-background border-border text-foreground" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="profile"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-foreground">Profile Image URL</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="https://..." {...field} className="bg-background border-border text-foreground" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-foreground">Description</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder="Enter counselor description" {...field} className="bg-background border-border text-foreground min-h-[100px]" />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="bg-background border-border text-foreground hover:bg-muted/40 hover:text-foreground">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                            <div className="space-y-4 border-b border-border/50 pb-6">
+                                <label className="text-sm font-semibold text-foreground block">Profile Picture</label>
+                                <div className="flex gap-6">
+                                    <div className="shrink-0">
+                                        {imagePreview ? (
+                                            <div className="relative w-40 h-40 rounded-lg overflow-hidden border border-border/50 bg-muted/50">
+                                                <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" onError={() => setImagePreview("")} />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setImagePreview("");
+                                                        form.setValue("profile", "");
+                                                        if (fileInputRef.current) fileInputRef.current.value = "";
+                                                    }}
+                                                    className="absolute top-2 right-2 bg-destructive/80 hover:bg-destructive rounded-md p-1.5 transition-colors"
+                                                >
+                                                    <X className="h-4 w-4 text-white" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="w-40 h-40 rounded-lg border-2 border-dashed border-border/50 bg-muted/30 flex flex-col items-center justify-center hover:border-primary/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                                            >
+                                                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                                                <span className="text-xs text-muted-foreground font-medium">Click to upload</span>
+                                            </button>
+                                        )}
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileSelect}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                    <div className="flex-1 space-y-3">
+                                        <FormField
+                                            control={form.control}
+                                            name="profile"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-semibold uppercase text-muted-foreground">Image URL (or paste above)</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="https://example.com/image.jpg"
+                                                            {...field}
+                                                            onChange={(e) => {
+                                                                field.onChange(e);
+                                                                handleImageUrlChange(e.target.value);
+                                                            }}
+                                                            className="bg-background border-border text-foreground text-sm"
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage className="text-xs" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="text-xs text-muted-foreground bg-muted/50 rounded-md p-2 border border-border/30">
+                                            <span className="font-semibold">Supported formats:</span> JPG, PNG, WebP (max 5MB)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-semibold text-foreground">Basic Information</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold uppercase text-muted-foreground">Full Name *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. John Doe" {...field} className="bg-background border-border text-foreground" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="designation"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs font-semibold uppercase text-muted-foreground">Designation *</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="e.g. Senior Admissions Counselor" {...field} className="bg-background border-border text-foreground" />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 border-t border-border/50 pt-6">
+                                <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel className="text-xs font-semibold uppercase text-muted-foreground">Bio / Description</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder="Brief overview of expertise, experience, and specialization..." {...field} className="bg-background border-border text-foreground min-h-30 resize-none" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <DialogFooter className="border-t border-border/50 pt-6 gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsDialogOpen(false)}
+                                    className="px-6 py-2.5 font-medium text-sm"
+                                >
                                     Cancel
                                 </Button>
-                                <Button type="submit" className="bg-primary hover:bg-primary/90 text-foreground">
+                                <Button
+                                    type="submit"
+                                    className="px-6 py-2.5 font-medium text-sm bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all"
+                                >
                                     {editingCounselor ? "Save Changes" : "Create Counselor"}
                                 </Button>
                             </DialogFooter>
