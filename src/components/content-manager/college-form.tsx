@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -25,6 +25,12 @@ import {
   type ReachUsLocation,
 } from "@/services/reach-us-service";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,8 +129,10 @@ interface CourseRow {
   cutoff_all_india_enabled: boolean;
   cutoff_minority_enabled: boolean;
   cutoff_nri_enabled: boolean;
-  cutoff_state: RoundCutoff;
+  cutoff_state: CategoryCutoff;
   cutoff_all_india: RoundCutoff;
+  cutoff_all_india_deemed_enabled: boolean;
+  cutoff_all_india_deemed: CategoryCutoff;
   cutoff_minority: RoundCutoff;
   cutoff_nri: RoundCutoff;
   govt_state_cutoff_enabled: boolean;
@@ -152,6 +160,15 @@ interface RoundCutoff {
   r_final: string;
 }
 
+interface CategoryCutoff {
+  open: string;
+  ews: string;
+  obc: string;
+  sc: string;
+  st: string;
+  ph: string;
+}
+
 interface GovtStateCutoff {
   urop: string;
   ews: string;
@@ -162,6 +179,7 @@ interface GovtStateCutoff {
 }
 
 interface GovtAiqCutoff {
+  open: string;
   ews: string;
   obc: string;
   sc: string;
@@ -190,7 +208,7 @@ interface CollegeFormValues {
   university_name: string;
   slug: string;
   approval: string;
-  status: string;
+  status: string[];
   state: string;
   city: string;
   mgmt_type: string;
@@ -215,7 +233,6 @@ interface CollegeFormValues {
   facilities_enabled: boolean;
   hospital_overview_enabled: boolean;
   admission_counselling: string[];
-  eligibility: string;
   internship: string;
   exchange_program: string;
   sponsorship: string;
@@ -228,28 +245,16 @@ interface CollegeFormValues {
   bus_stand: string;
   no_of_ot: string;
   total_bed: string;
-  ss_bed: string;
-  ms_bed: string;
+  general_ward_bed: string;
+  critical_ward_bed: string;
   opd_running: string;
   average_ot: string;
   clinical_rotation: string;
   medical_camping: string;
   clinical_excilence_lab: ClinicalExcilenceLabRow[];
   discipline_sections: DisciplineSectionRow[];
-  courses: CourseRow[];
-  cutoff_state_enabled: boolean;
-  cutoff_all_india_enabled: boolean;
-  cutoff_minority_enabled: boolean;
-  govt_state_cutoff_enabled: boolean;
-  government_college_aiq_cutoff_enabled: boolean;
-  cutoff_state: RoundCutoff;
-  cutoff_all_india: RoundCutoff;
-  cutoff_minority: RoundCutoff;
-  govt_state_cutoff: GovtStateCutoff;
-  government_college_aiq_cutoff: GovtAiqCutoff;
-  cutoff_nri_enabled: boolean;
-  cutoff_nri: RoundCutoff;
   college_rating: string;
+  special_features: string[];
 }
 
 interface CollegeFormProps {
@@ -1004,7 +1009,7 @@ function DisciplineCoursesGroup({
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <FL>Total PG Seat</FL>
+                  <FL>Total PG Seat (MD/MS)</FL>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                       <Users className="h-4 w-4" />
@@ -1017,7 +1022,7 @@ function DisciplineCoursesGroup({
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <FL>Total SS Seat</FL>
+                  <FL>Total Super Speciality Seat (SS & MCH)</FL>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                       <Users className="h-4 w-4" />
@@ -1068,7 +1073,6 @@ function DisciplineCoursesGroup({
                     register={register}
                     setValue={setValue}
                     coursePath={coursePath(courseIndex)}
-                    inputCls="h-9 rounded-lg border-border/60 bg-background text-sm shadow-xs"
                   />
                 )}
               </div>
@@ -1112,6 +1116,17 @@ function defaultRoundCutoff(value?: Partial<RoundCutoff>): RoundCutoff {
   };
 }
 
+function defaultCategoryCutoff(value?: Partial<CategoryCutoff>): CategoryCutoff {
+  return {
+    open: readString(value?.open),
+    ews: readString(value?.ews),
+    obc: readString(value?.obc),
+    sc: readString(value?.sc),
+    st: readString(value?.st),
+    ph: readString(value?.ph),
+  };
+}
+
 function defaultGovtStateCutoff(
   value?: Partial<GovtStateCutoff>,
 ): GovtStateCutoff {
@@ -1127,6 +1142,7 @@ function defaultGovtStateCutoff(
 
 function defaultGovtAiqCutoff(value?: Partial<GovtAiqCutoff>): GovtAiqCutoff {
   return {
+    open: readString(value?.open),
     ews: readString(value?.ews),
     obc: readString(value?.obc),
     sc: readString(value?.sc),
@@ -1161,8 +1177,10 @@ function defaultCourseRow(discipline = ""): CourseRow {
     cutoff_all_india_enabled: true,
     cutoff_minority_enabled: true,
     cutoff_nri_enabled: true,
-    cutoff_state: defaultRoundCutoff(),
+    cutoff_state: defaultCategoryCutoff(),
     cutoff_all_india: defaultRoundCutoff(),
+    cutoff_all_india_deemed_enabled: true,
+    cutoff_all_india_deemed: defaultCategoryCutoff(),
     cutoff_minority: defaultRoundCutoff(),
     cutoff_nri: defaultRoundCutoff(),
     govt_state_cutoff_enabled: true,
@@ -1375,13 +1393,22 @@ function normalizeCourseRows(
         (record as { cutoff_nri_enabled?: unknown }).cutoff_nri_enabled,
         true,
       ),
-      cutoff_state: defaultRoundCutoff(
+      cutoff_state: defaultCategoryCutoff(
         (record as { cutoff_state?: unknown })
-          .cutoff_state as Partial<RoundCutoff>,
+          .cutoff_state as Partial<CategoryCutoff>,
       ),
       cutoff_all_india: defaultRoundCutoff(
         (record as { cutoff_all_india?: unknown })
           .cutoff_all_india as Partial<RoundCutoff>,
+      ),
+      cutoff_all_india_deemed_enabled: readBoolean(
+        (record as { cutoff_all_india_deemed_enabled?: unknown })
+          .cutoff_all_india_deemed_enabled,
+        true,
+      ),
+      cutoff_all_india_deemed: defaultCategoryCutoff(
+        (record as { cutoff_all_india_deemed?: unknown })
+          .cutoff_all_india_deemed as Partial<CategoryCutoff>,
       ),
       cutoff_minority: defaultRoundCutoff(
         (record as { cutoff_minority?: unknown })
@@ -1482,6 +1509,7 @@ function courseRoundFields(prefix: string) {
     { label: "R-3", name: `${prefix}.r3` },
     { label: "R-4", name: `${prefix}.r4` },
     { label: "R-5", name: `${prefix}.r5` },
+    { label: "R-Final", name: `${prefix}.r_final` },
   ];
 }
 
@@ -1490,13 +1518,11 @@ function CourseCutoffSection({
   register,
   setValue,
   coursePath,
-  inputCls,
 }: {
   control: Control<CollegeFormValues>;
   register: UseFormRegister<CollegeFormValues>;
   setValue: ReturnType<typeof useForm<CollegeFormValues>>["setValue"];
   coursePath: string;
-  inputCls: string;
 }) {
   const stateEnabled = useWatch({
     control,
@@ -1522,19 +1548,33 @@ function CourseCutoffSection({
     control,
     name: `${coursePath}.government_college_aiq_cutoff_enabled` as never,
   }) as unknown as boolean;
+  const deemedEnabled = useWatch({
+    control,
+    name: `${coursePath}.cutoff_all_india_deemed_enabled` as never,
+  }) as unknown as boolean;
+
+  const stateCategoryFields = [
+    { label: "Open", name: `${coursePath}.cutoff_state.open` },
+    { label: "EWS", name: `${coursePath}.cutoff_state.ews` },
+    { label: "OBC", name: `${coursePath}.cutoff_state.obc` },
+    { label: "SC", name: `${coursePath}.cutoff_state.sc` },
+    { label: "ST", name: `${coursePath}.cutoff_state.st` },
+    { label: "PH", name: `${coursePath}.cutoff_state.ph` },
+  ];
+
+  const deemedCategoryFields = [
+    { label: "Open", name: `${coursePath}.cutoff_all_india_deemed.open` },
+    { label: "EWS", name: `${coursePath}.cutoff_all_india_deemed.ews` },
+    { label: "OBC", name: `${coursePath}.cutoff_all_india_deemed.obc` },
+    { label: "SC", name: `${coursePath}.cutoff_all_india_deemed.sc` },
+    { label: "ST", name: `${coursePath}.cutoff_all_india_deemed.st` },
+    { label: "PH", name: `${coursePath}.cutoff_all_india_deemed.ph` },
+  ];
 
   const roundSections = [
     {
-      key: "state",
-      label: "Cutoff State",
-      color: "bg-blue-500",
-      enabledPath: `${coursePath}.cutoff_state_enabled`,
-      enabled: stateEnabled,
-      prefix: `${coursePath}.cutoff_state`,
-    },
-    {
       key: "all_india",
-      label: "Cutoff All India",
+      label: "Cutoff All India MCC Counselling",
       color: "bg-emerald-500",
       enabledPath: `${coursePath}.cutoff_all_india_enabled`,
       enabled: allIndiaEnabled,
@@ -1542,7 +1582,7 @@ function CourseCutoffSection({
     },
     {
       key: "minority",
-      label: "Cutoff Minority",
+      label: "State PVT Cutoff",
       color: "bg-amber-500",
       enabledPath: `${coursePath}.cutoff_minority_enabled`,
       enabled: minorityEnabled,
@@ -1550,7 +1590,7 @@ function CourseCutoffSection({
     },
     {
       key: "nri",
-      label: "NRI Cutoff",
+      label: "Cut Off Minority Quota",
       color: "bg-violet-500",
       enabledPath: `${coursePath}.cutoff_nri_enabled`,
       enabled: nriEnabled,
@@ -1564,194 +1604,183 @@ function CourseCutoffSection({
     { label: "OBC", name: `${coursePath}.govt_state_cutoff.obc` },
     { label: "SC", name: `${coursePath}.govt_state_cutoff.sc` },
     { label: "ST", name: `${coursePath}.govt_state_cutoff.st` },
-    { label: "UR", name: `${coursePath}.govt_state_cutoff.ur` },
+    // { label: "UR", name: `${coursePath}.govt_state_cutoff.ur` },
   ];
 
   const aiqFields = [
-    { label: "EWS", name: `${coursePath}.government_college_aiq_cutoff.ews` },
-    { label: "OBC", name: `${coursePath}.government_college_aiq_cutoff.obc` },
-    { label: "SC", name: `${coursePath}.government_college_aiq_cutoff.sc` },
-    { label: "ST", name: `${coursePath}.government_college_aiq_cutoff.st` },
-    { label: "UR", name: `${coursePath}.government_college_aiq_cutoff.ur` },
+    {
+      label: "Open-G",
+      name: `${coursePath}.government_college_aiq_cutoff.open`,
+    },
+    {
+      label: "EWS-G",
+      name: `${coursePath}.government_college_aiq_cutoff.ews`,
+    },
+    { label: "OBC-G", name: `${coursePath}.government_college_aiq_cutoff.obc` },
+    { label: "SC-G", name: `${coursePath}.government_college_aiq_cutoff.sc` },
+    { label: "ST-G", name: `${coursePath}.government_college_aiq_cutoff.st` },
+    { label: "PH-G", name: `${coursePath}.government_college_aiq_cutoff.ur` },
   ];
 
+  function CutoffBlock({
+    dot,
+    label,
+    enabled,
+    onEnable,
+    onDisable,
+    fields,
+  }: {
+    dot: string;
+    label: string;
+    enabled: boolean;
+    onEnable: () => void;
+    onDisable: () => void;
+    fields: { label: string; name: string }[];
+  }) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              {label}
+            </span>
+          </div>
+          <div className="flex h-5 overflow-hidden rounded border border-border/50">
+            <button
+              type="button"
+              onClick={onDisable}
+              className={cn(
+                "px-2.5 text-[9px] font-bold uppercase transition-colors",
+                !enabled
+                  ? "bg-red-500/10 text-red-500"
+                  : "text-muted-foreground hover:bg-muted/40",
+              )}
+            >
+              Off
+            </button>
+            <div className="w-px bg-border/50" />
+            <button
+              type="button"
+              onClick={onEnable}
+              className={cn(
+                "px-2.5 text-[9px] font-bold uppercase transition-colors",
+                enabled
+                  ? "bg-emerald-500/10 text-emerald-600"
+                  : "text-muted-foreground hover:bg-muted/40",
+              )}
+            >
+              On
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-1">
+          {fields.map((field) => (
+            <Input
+              key={field.name}
+              {...register(field.name as never)}
+              placeholder={field.label}
+              disabled={!enabled}
+              className="h-8 min-w-0 flex-1 rounded border-border/60 bg-white px-2 text-center text-xs shadow-none placeholder:text-[10px]"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="mt-4 space-y-4 rounded-xl border border-border/40 bg-white p-4">
+    <div className="mt-3 space-y-3 rounded-lg border border-border/40 bg-muted/10 p-3">
+      <CutoffBlock
+        dot="bg-blue-500"
+        label="Cut off State Govt. Counselling"
+        enabled={stateEnabled}
+        onEnable={() =>
+          setValue(
+            `${coursePath}.cutoff_state_enabled` as never,
+            true as never,
+          )
+        }
+        onDisable={() =>
+          setValue(
+            `${coursePath}.cutoff_state_enabled` as never,
+            false as never,
+          )
+        }
+        fields={stateCategoryFields}
+      />
       {roundSections.map((section) => (
-        <div key={section.key} className="space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <div className={`h-1.5 w-1.5 rounded-full ${section.color}`} />
-              <span className="text-[11px] font-bold uppercase text-foreground">
-                {section.label}
-              </span>
-            </div>
-            <div className="flex h-7 overflow-hidden rounded-md border border-border/50">
-              <button
-                type="button"
-                onClick={() =>
-                  setValue(section.enabledPath as never, false as never)
-                }
-                className={cn(
-                  "px-3 text-[10px] font-bold uppercase transition-all",
-                  !section.enabled
-                    ? "bg-red-500/10 text-red-500"
-                    : "bg-white text-muted-foreground hover:bg-muted/30",
-                )}
-              >
-                Off
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setValue(section.enabledPath as never, true as never)
-                }
-                className={cn(
-                  "px-3 text-[10px] font-bold uppercase transition-all",
-                  section.enabled
-                    ? "bg-emerald-500/10 text-emerald-500"
-                    : "bg-white text-muted-foreground hover:bg-muted/30",
-                )}
-              >
-                On
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            {courseRoundFields(section.prefix).map((field) => (
-              <div key={field.name} className="space-y-1.5">
-                <FL>{field.label}</FL>
-                <Input
-                  {...register(field.name as never)}
-                  placeholder={field.label}
-                  className={inputCls}
-                  disabled={!section.enabled}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+        <Fragment key={section.key}>
+          {section.key === "all_india" && (
+            <CutoffBlock
+              dot="bg-teal-500"
+              label="Cutoff All India MCC Counselling (Deemed)"
+              enabled={deemedEnabled}
+              onEnable={() =>
+                setValue(
+                  `${coursePath}.cutoff_all_india_deemed_enabled` as never,
+                  true as never,
+                )
+              }
+              onDisable={() =>
+                setValue(
+                  `${coursePath}.cutoff_all_india_deemed_enabled` as never,
+                  false as never,
+                )
+              }
+              fields={deemedCategoryFields}
+            />
+          )}
+          <CutoffBlock
+            dot={section.color}
+            label={section.label}
+            enabled={section.enabled}
+            onEnable={() =>
+              setValue(section.enabledPath as never, true as never)
+            }
+            onDisable={() =>
+              setValue(section.enabledPath as never, false as never)
+            }
+            fields={courseRoundFields(section.prefix)}
+          />
+        </Fragment>
       ))}
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-500" />
-            <span className="text-[11px] font-bold uppercase text-foreground">
-              Govt State Cutoff
-            </span>
-          </div>
-          <div className="flex h-7 overflow-hidden rounded-md border border-border/50">
-            <button
-              type="button"
-              onClick={() =>
-                setValue(
-                  `${coursePath}.govt_state_cutoff_enabled` as never,
-                  false as never,
-                )
-              }
-              className={cn(
-                "px-3 text-[10px] font-bold uppercase transition-all",
-                !govtStateEnabled
-                  ? "bg-red-500/10 text-red-500"
-                  : "bg-white text-muted-foreground hover:bg-muted/30",
-              )}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setValue(
-                  `${coursePath}.govt_state_cutoff_enabled` as never,
-                  true as never,
-                )
-              }
-              className={cn(
-                "px-3 text-[10px] font-bold uppercase transition-all",
-                govtStateEnabled
-                  ? "bg-emerald-500/10 text-emerald-500"
-                  : "bg-white text-muted-foreground hover:bg-muted/30",
-              )}
-            >
-              On
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-          {govtStateFields.map((field) => (
-            <div key={field.name} className="space-y-1.5">
-              <FL>{field.label}</FL>
-              <Input
-                {...register(field.name as never)}
-                placeholder={field.label}
-                className={inputCls}
-                disabled={!govtStateEnabled}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-bold uppercase text-foreground">
-              Government College AIQ Cutoff
-            </span>
-          </div>
-          <div className="flex h-7 overflow-hidden rounded-md border border-border/50">
-            <button
-              type="button"
-              onClick={() =>
-                setValue(
-                  `${coursePath}.government_college_aiq_cutoff_enabled` as never,
-                  false as never,
-                )
-              }
-              className={cn(
-                "px-3 text-[10px] font-bold uppercase transition-all",
-                !aiqEnabled
-                  ? "bg-red-500/10 text-red-500"
-                  : "bg-white text-muted-foreground hover:bg-muted/30",
-              )}
-            >
-              Off
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setValue(
-                  `${coursePath}.government_college_aiq_cutoff_enabled` as never,
-                  true as never,
-                )
-              }
-              className={cn(
-                "px-3 text-[10px] font-bold uppercase transition-all",
-                aiqEnabled
-                  ? "bg-emerald-500/10 text-emerald-500"
-                  : "bg-white text-muted-foreground hover:bg-muted/30",
-              )}
-            >
-              On
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-          {aiqFields.map((field) => (
-            <div key={field.name} className="space-y-1.5">
-              <FL>{field.label}</FL>
-              <Input
-                {...register(field.name as never)}
-                placeholder={field.label}
-                className={inputCls}
-                disabled={!aiqEnabled}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <CutoffBlock
+        dot="bg-fuchsia-500"
+        label="NRI Cut Off"
+        enabled={govtStateEnabled}
+        onEnable={() =>
+          setValue(
+            `${coursePath}.govt_state_cutoff_enabled` as never,
+            true as never,
+          )
+        }
+        onDisable={() =>
+          setValue(
+            `${coursePath}.govt_state_cutoff_enabled` as never,
+            false as never,
+          )
+        }
+        fields={govtStateFields}
+      />
+      <CutoffBlock
+        dot="bg-rose-500"
+        label="State Cutoff Girls"
+        enabled={aiqEnabled}
+        onEnable={() =>
+          setValue(
+            `${coursePath}.government_college_aiq_cutoff_enabled` as never,
+            true as never,
+          )
+        }
+        onDisable={() =>
+          setValue(
+            `${coursePath}.government_college_aiq_cutoff_enabled` as never,
+            false as never,
+          )
+        }
+        fields={aiqFields}
+      />
     </div>
   );
 }
@@ -1853,7 +1882,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       approval: readString(
         (initialData as Partial<College> & Record<string, unknown>)?.approval,
       ),
-      status: readString(
+      status: readSelectionList(
         (initialData as Partial<College> & Record<string, unknown>)?.status,
       ),
       state: readString(
@@ -1946,10 +1975,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
         (initialData as Partial<College> & Record<string, unknown>)
           ?.admission_counselling,
       ),
-      eligibility: readString(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.eligibility,
-      ),
       internship: readString(
         (initialData as Partial<College> & Record<string, unknown>)?.internship,
       ),
@@ -1993,11 +2018,13 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       total_bed: readString(
         (initialData as Partial<College> & Record<string, unknown>)?.total_bed,
       ),
-      ss_bed: readString(
-        (initialData as Partial<College> & Record<string, unknown>)?.ss_bed,
+      general_ward_bed: readString(
+        (initialData as Partial<College> & Record<string, unknown>)
+          ?.general_ward_bed,
       ),
-      ms_bed: readString(
-        (initialData as Partial<College> & Record<string, unknown>)?.ms_bed,
+      critical_ward_bed: readString(
+        (initialData as Partial<College> & Record<string, unknown>)
+          ?.critical_ward_bed,
       ),
       opd_running: readString(
         (initialData as Partial<College> & Record<string, unknown>)
@@ -2030,74 +2057,13 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
             ?.exam_accepted,
         ),
       ),
-      courses: normalizeCourseRows(
-        (initialData as Partial<College> & Record<string, unknown>)?.courses,
-        readString(
-          (initialData as Partial<College> & Record<string, unknown>)
-            ?.eligibility,
-        ),
-        readString(
-          (initialData as Partial<College> & Record<string, unknown>)
-            ?.exam_accepted,
-        ),
-      ),
-      cutoff_state_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_state_enabled,
-        true,
-      ),
-      cutoff_all_india_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_all_india_enabled,
-        true,
-      ),
-      cutoff_minority_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_minority_enabled,
-        true,
-      ),
-      govt_state_cutoff_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.govt_state_cutoff_enabled,
-        true,
-      ),
-      government_college_aiq_cutoff_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.government_college_aiq_cutoff_enabled,
-        true,
-      ),
-      cutoff_state: defaultRoundCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_state as Partial<RoundCutoff>,
-      ),
-      cutoff_all_india: defaultRoundCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_all_india as Partial<RoundCutoff>,
-      ),
-      cutoff_minority: defaultRoundCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_minority as Partial<RoundCutoff>,
-      ),
-      govt_state_cutoff: defaultGovtStateCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.govt_state_cutoff as Partial<GovtStateCutoff>,
-      ),
-      government_college_aiq_cutoff: defaultGovtAiqCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.government_college_aiq_cutoff as Partial<GovtAiqCutoff>,
-      ),
-      cutoff_nri_enabled: readBoolean(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_nri_enabled,
-        true,
-      ),
-      cutoff_nri: defaultRoundCutoff(
-        (initialData as Partial<College> & Record<string, unknown>)
-          ?.cutoff_nri as Partial<RoundCutoff>,
-      ),
       college_rating: readString(
         (initialData as Partial<College> & Record<string, unknown>)
           ?.college_rating,
+      ),
+      special_features: readStringArray(
+        (initialData as Partial<College> & Record<string, unknown>)
+          ?.special_features,
       ),
     }),
     [initialData],
@@ -2125,6 +2091,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     control: form.control,
     name: "gallery",
   });
+  const specialFeaturesValue = (useWatch({
+    control: form.control,
+    name: "special_features",
+  }) as string[]) || [];
   const approvalValue = useWatch({ control: form.control, name: "approval" });
   const statusValue = useWatch({ control: form.control, name: "status" });
   const managementTypeValue = useWatch({
@@ -2134,8 +2104,14 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   const naacValue = useWatch({ control: form.control, name: "naac" });
   const nbaValue = useWatch({ control: form.control, name: "nba" });
   const isFeaturedValue = useWatch({ control: form.control, name: "featured" });
-  const metaTitleValue = useWatch({ control: form.control, name: "meta_title" });
-  const metaDescriptionValue = useWatch({ control: form.control, name: "meta_description" });
+  const metaTitleValue = useWatch({
+    control: form.control,
+    name: "meta_title",
+  });
+  const metaDescriptionValue = useWatch({
+    control: form.control,
+    name: "meta_description",
+  });
   const slugValue = useWatch({ control: form.control, name: "slug" });
   const admissionCounsellingValue = useWatch({
     control: form.control,
@@ -2155,18 +2131,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     );
   }, [dbCourses]);
 
-  const internshipValue = useWatch({
-    control: form.control,
-    name: "internship",
-  });
-  const exchangeProgramValue = useWatch({
-    control: form.control,
-    name: "exchange_program",
-  });
-  const sponsorshipValue = useWatch({
-    control: form.control,
-    name: "sponsorship",
-  });
   const clinicalRotationValue = useWatch({
     control: form.control,
     name: "clinical_rotation",
@@ -2174,30 +2138,6 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
   const medicalCampingValue = useWatch({
     control: form.control,
     name: "medical_camping",
-  });
-  const cutoffStateEnabledValue = useWatch({
-    control: form.control,
-    name: "cutoff_state_enabled",
-  });
-  const cutoffAllIndiaEnabledValue = useWatch({
-    control: form.control,
-    name: "cutoff_all_india_enabled",
-  });
-  const cutoffMinorityEnabledValue = useWatch({
-    control: form.control,
-    name: "cutoff_minority_enabled",
-  });
-  const cutoffNriEnabledValue = useWatch({
-    control: form.control,
-    name: "cutoff_nri_enabled",
-  });
-  const govtStateCutoffEnabledValue = useWatch({
-    control: form.control,
-    name: "govt_state_cutoff_enabled",
-  });
-  const governmentCollegeAiqCutoffEnabledValue = useWatch({
-    control: form.control,
-    name: "government_college_aiq_cutoff_enabled",
   });
   const selectedStateValue = useWatch({ control: form.control, name: "state" });
   const selectedCityValue = useWatch({ control: form.control, name: "city" });
@@ -2509,16 +2449,13 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       ),
     ).join("; ");
     const submitData = Object.fromEntries(
-      Object.entries(data).filter(
-        ([key]) => key !== "discipline_sections" && key !== "eligibility",
-      ),
-    ) as Omit<CollegeFormValues, "discipline_sections" | "eligibility">;
+      Object.entries(data).filter(([key]) => key !== "discipline_sections"),
+    ) as Omit<CollegeFormValues, "discipline_sections">;
 
     const payload = {
       ...submitData,
       discipline: selectedDisciplines.join(", "),
       courses: flattenedCourses,
-      featured: data.featured,
       isFeatured: data.featured,
       priority: Number(data.priority) || 1,
       college_rating: Number(data.college_rating) || undefined,
@@ -2527,9 +2464,9 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       affiliated_with: data.university_name,
       NIRF_rank: data.nirf_rank,
       college_description: data.overview,
-      apply_now_url: data.action_url,
       gallery: data.gallery,
       exam_accepted: examAcceptedSummary,
+      status: data.status.join("; "),
       admission_counselling: data.admission_counselling.join("; "),
       cityId: selectedCity && selectedCity.id > 0 ? selectedCity.id : undefined,
       city_name: selectedCity?.city || data.city,
@@ -2667,19 +2604,52 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
             </div>
             <div className="space-y-1.5">
               <FL>Status</FL>
-              <Select
-                value={statusValue}
-                onValueChange={(value) => form.setValue("status", value)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Approved">Approved</SelectItem>
-                  <SelectItem value="Recognized">Recognized</SelectItem>
-                  <SelectItem value="AUTONOMUS">AUTONOMUS</SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    inputCls,
+                    "flex w-full items-center justify-between px-3 text-sm",
+                  )}
+                >
+                  <span className="truncate text-left">
+                    {(statusValue as string[]).length > 0 ? (
+                      (statusValue as string[]).join(", ")
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Select status
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64" align="start">
+                  {(
+                    [
+                      "Approved",
+                      "Recognized",
+                      "Deemed University",
+                      "Institute of National Importance",
+                      "Autonomus",
+                    ] as const
+                  ).map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option}
+                      checked={(statusValue as string[]).includes(option)}
+                      onCheckedChange={(checked) => {
+                        const next = checked
+                          ? [...(statusValue as string[]), option]
+                          : (statusValue as string[]).filter(
+                              (v) => v !== option,
+                            );
+                        form.setValue("status", next, { shouldDirty: true });
+                      }}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {option}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="space-y-1.5">
               <FL>Mgmt Type</FL>
@@ -3020,69 +2990,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           <SectionHeader
             icon={BookOpen}
             title="Monthly Stipend / Scholarship"
-            subtitle="Internship, exchange program, sponsorship, and year-wise stipend"
+            subtitle="Year-wise stipend amounts"
           />
         </CardHeader>
         <CardContent className={cardContentCls}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div className="space-y-1.5">
-              <FL>Internship</FL>
-              <Select
-                value={internshipValue}
-                onValueChange={(value) => form.setValue("internship", value)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select internship" />
-                </SelectTrigger>
-                <SelectContent>
-                  {YES_NO_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <FL>Exchange Program</FL>
-              <Select
-                value={exchangeProgramValue}
-                onValueChange={(value) =>
-                  form.setValue("exchange_program", value)
-                }
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select option" />
-                </SelectTrigger>
-                <SelectContent>
-                  {YES_NO_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <FL>Sponsorship</FL>
-              <Select
-                value={sponsorshipValue}
-                onValueChange={(value) => form.setValue("sponsorship", value)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select sponsorship" />
-                </SelectTrigger>
-                <SelectContent>
-                  {YES_NO_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
             <div className="space-y-1.5">
               <FL>1st Year</FL>
@@ -3108,6 +3019,55 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                 className={inputCls}
               />
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className={cardCls}>
+        <CardHeader className={cardHeaderCls}>
+          <SectionHeader
+            icon={Star}
+            title="Special Features"
+            subtitle="Highlight unique features of the college"
+            count={specialFeaturesValue.length}
+          />
+        </CardHeader>
+        <CardContent className={cardContentCls}>
+          <div className="space-y-2">
+            {specialFeaturesValue.map((_, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  {...form.register(`special_features.${index}` as never)}
+                  placeholder={`Feature ${index + 1}`}
+                  className={inputCls}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 text-destructive/60 hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() =>
+                    form.setValue(
+                      "special_features",
+                      specialFeaturesValue.filter((_, i) => i !== index),
+                      { shouldDirty: true },
+                    )
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <AddRowButton
+              label="Add Feature"
+              onClick={() =>
+                form.setValue(
+                  "special_features",
+                  [...specialFeaturesValue, ""],
+                  { shouldDirty: true },
+                )
+              }
+            />
           </div>
         </CardContent>
       </Card>
@@ -3254,7 +3214,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <FL>Total Bed</FL>
+              <FL>Total Bed Capacity</FL>
               <Input
                 {...form.register("total_bed")}
                 placeholder="700"
@@ -3262,17 +3222,17 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <FL>SS Bed</FL>
+              <FL>General Ward Bed</FL>
               <Input
-                {...form.register("ss_bed")}
+                {...form.register("general_ward_bed")}
                 placeholder="120"
                 className={inputCls}
               />
             </div>
             <div className="space-y-1.5">
-              <FL>MS Bed</FL>
+              <FL>Critical Ward Bed</FL>
               <Input
-                {...form.register("ms_bed")}
+                {...form.register("critical_ward_bed")}
                 placeholder="80"
                 className={inputCls}
               />
@@ -3681,11 +3641,21 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                 <span className="h-2.5 w-2.5 rounded-full bg-green-400/70" />
               </div>
               <div className="flex flex-1 items-center gap-2 rounded-md border border-border/40 bg-background px-3 py-1 text-xs text-muted-foreground">
-                <svg className="h-3 w-3 shrink-0 text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                <svg
+                  className="h-3 w-3 shrink-0 text-muted-foreground/60"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
                 </svg>
                 <span className="truncate font-mono text-[11px]">
-                  google.com/search?q={encodeURIComponent(metaTitleValue || collegeName || "college name")}
+                  google.com/search?q=
+                  {encodeURIComponent(
+                    metaTitleValue || collegeName || "college name",
+                  )}
                 </span>
               </div>
             </div>
@@ -3696,29 +3666,52 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               <div className="flex items-center gap-2">
                 <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/50 bg-white shadow-xs">
                   <svg viewBox="0 0 48 48" className="h-3.5 w-3.5">
-                    <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                    <path fill="none" d="M0 0h48v48H0z"/>
+                    <path
+                      fill="#4285F4"
+                      d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                    />
+                    <path fill="none" d="M0 0h48v48H0z" />
                   </svg>
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-foreground">Admission Today</p>
+                  <p className="truncate text-xs font-medium text-foreground">
+                    Admission Today
+                  </p>
                   <p className="truncate font-mono text-[11px] text-muted-foreground">
-                    admissiontoday.com › colleges{slugValue ? ` › ${slugValue}` : ""}
+                    admissiontoday.com › colleges
+                    {slugValue ? ` › ${slugValue}` : ""}
                   </p>
                 </div>
               </div>
 
               {/* Title */}
-              <p className={`text-lg font-normal leading-snug ${metaTitleValue || collegeName ? "text-[#1a0dab]" : "text-muted-foreground/50 italic"} hover:underline cursor-pointer`}>
-                {metaTitleValue || (collegeName ? `${collegeName} — Admission 2026, Fees, Cutoff | Admission Today` : "Meta title will appear here…")}
+              <p
+                className={`text-lg font-normal leading-snug ${metaTitleValue || collegeName ? "text-[#1a0dab]" : "text-muted-foreground/50 italic"} hover:underline cursor-pointer`}
+              >
+                {metaTitleValue ||
+                  (collegeName
+                    ? `${collegeName} — Admission 2026, Fees, Cutoff | Admission Today`
+                    : "Meta title will appear here…")}
               </p>
 
               {/* Description */}
-              <p className={`text-sm leading-relaxed ${metaDescriptionValue ? "text-[#4d5156]" : "text-muted-foreground/40 italic"}`}>
-                {metaDescriptionValue || "Meta description will appear here. Add a description to improve your click-through rate from search results."}
+              <p
+                className={`text-sm leading-relaxed ${metaDescriptionValue ? "text-[#4d5156]" : "text-muted-foreground/40 italic"}`}
+              >
+                {metaDescriptionValue ||
+                  "Meta description will appear here. Add a description to improve your click-through rate from search results."}
               </p>
             </div>
           </div>
@@ -3727,14 +3720,18 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Title Length</span>
-                <span className={`text-[11px] font-bold ${
-                  (metaTitleValue?.length ?? 0) > 60
-                    ? "text-red-500"
-                    : (metaTitleValue?.length ?? 0) >= 50
-                    ? "text-green-600"
-                    : "text-amber-500"
-                }`}>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Title Length
+                </span>
+                <span
+                  className={`text-[11px] font-bold ${
+                    (metaTitleValue?.length ?? 0) > 60
+                      ? "text-red-500"
+                      : (metaTitleValue?.length ?? 0) >= 50
+                        ? "text-green-600"
+                        : "text-amber-500"
+                  }`}
+                >
                   {metaTitleValue?.length ?? 0} / 60
                 </span>
               </div>
@@ -3744,31 +3741,37 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                     (metaTitleValue?.length ?? 0) > 60
                       ? "bg-red-500"
                       : (metaTitleValue?.length ?? 0) >= 50
-                      ? "bg-green-500"
-                      : "bg-amber-400"
+                        ? "bg-green-500"
+                        : "bg-amber-400"
                   }`}
-                  style={{ width: `${Math.min(((metaTitleValue?.length ?? 0) / 60) * 100, 100)}%` }}
+                  style={{
+                    width: `${Math.min(((metaTitleValue?.length ?? 0) / 60) * 100, 100)}%`,
+                  }}
                 />
               </div>
               <p className="mt-1.5 text-[10px] text-muted-foreground">
                 {(metaTitleValue?.length ?? 0) > 60
                   ? "Too long — Google may truncate"
                   : (metaTitleValue?.length ?? 0) >= 50
-                  ? "Good length"
-                  : "Aim for 50–60 characters"}
+                    ? "Good length"
+                    : "Aim for 50–60 characters"}
               </p>
             </div>
 
             <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
               <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Description Length</span>
-                <span className={`text-[11px] font-bold ${
-                  (metaDescriptionValue?.length ?? 0) > 160
-                    ? "text-red-500"
-                    : (metaDescriptionValue?.length ?? 0) >= 120
-                    ? "text-green-600"
-                    : "text-amber-500"
-                }`}>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Description Length
+                </span>
+                <span
+                  className={`text-[11px] font-bold ${
+                    (metaDescriptionValue?.length ?? 0) > 160
+                      ? "text-red-500"
+                      : (metaDescriptionValue?.length ?? 0) >= 120
+                        ? "text-green-600"
+                        : "text-amber-500"
+                  }`}
+                >
                   {metaDescriptionValue?.length ?? 0} / 160
                 </span>
               </div>
@@ -3778,18 +3781,20 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                     (metaDescriptionValue?.length ?? 0) > 160
                       ? "bg-red-500"
                       : (metaDescriptionValue?.length ?? 0) >= 120
-                      ? "bg-green-500"
-                      : "bg-amber-400"
+                        ? "bg-green-500"
+                        : "bg-amber-400"
                   }`}
-                  style={{ width: `${Math.min(((metaDescriptionValue?.length ?? 0) / 160) * 100, 100)}%` }}
+                  style={{
+                    width: `${Math.min(((metaDescriptionValue?.length ?? 0) / 160) * 100, 100)}%`,
+                  }}
                 />
               </div>
               <p className="mt-1.5 text-[10px] text-muted-foreground">
                 {(metaDescriptionValue?.length ?? 0) > 160
                   ? "Too long — Google may truncate"
                   : (metaDescriptionValue?.length ?? 0) >= 120
-                  ? "Good length"
-                  : "Aim for 120–160 characters"}
+                    ? "Good length"
+                    : "Aim for 120–160 characters"}
               </p>
             </div>
           </div>
