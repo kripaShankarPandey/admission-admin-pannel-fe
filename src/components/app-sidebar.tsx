@@ -18,6 +18,7 @@ import {
   Plane,
   Settings,
   ShieldCheck,
+  Star,
   Tag,
   TrainFront,
   UserCircle,
@@ -85,6 +86,7 @@ const navSections: NavSection[] = [
     title: "Leads & People",
     items: [
       { title: "Contact Leads", icon: Mail, url: "/contact-leads", permission: "contact-leads" },
+      { title: "Reviews", icon: Star, url: "/reviews", permission: "contact-leads" },
       { title: "Counselors", icon: Users, url: "/counselors", permission: "counselors" },
       { title: "Newsletter", icon: Bell, url: "/newsletter-leads", permission: "newsletter-leads" },
       { title: "Website Users", icon: UserCircle, url: "/users", permission: "website-users" },

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Edit, Image as ImageIcon, Trash2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImage } from "@/lib/upload";
 import { courseCategoryService, type CourseCategory } from "@/services/course-category-service";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Pagination } from "@/components/pagination";
@@ -100,17 +101,17 @@ export default function CategoriesPage() {
     return { paginatedRows: rows.slice(start, start + pageSize), totalCount: total, pageCount: totalPages };
   }, [categories, currentPage, debouncedSearch]);
 
-  const handleIconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIconUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      const base64 = loadEvent.target?.result as string;
-      setIconPreview(base64);
-      form.setValue("icon", base64);
-    };
-    reader.readAsDataURL(file);
     event.target.value = "";
+    if (!file) return;
+    try {
+      const url = await uploadImage(file, "disciplines");
+      setIconPreview(url);
+      form.setValue("icon", url);
+    } catch {
+      toast.error("Icon upload failed.");
+    }
   };
 
   const removeIcon = () => {

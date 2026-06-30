@@ -1,3 +1,5 @@
+import { uploadImage } from "@/lib/upload";
+
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -16,16 +18,46 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to encode image."))),
+      type,
+      quality,
+    );
+  });
+}
+
+/**
+ * Client-side resize/compress, then upload to S3. Returns the public image URL.
+ *
+ * NOTE: despite the historical name this now returns a hosted URL (not a data
+ * URL) — images are stored on S3, not inline in the database. The signature is
+ * unchanged so existing callers keep working; pass `options.folder` to group
+ * uploads (e.g. "colleges", "courses", "settings").
+ */
 export async function optimizeImageFileToDataUrl(
   file: File,
   options: {
     maxWidth: number;
     maxHeight: number;
     quality?: number;
+    folder?: string;
   },
 ): Promise<string> {
-  if (file.type === "image/gif") {
-    return readFileAsDataUrl(file);
+  const folder = options.folder ?? "uploads";
+
+  // GIF / SVG / icon: don't rasterize — upload the original.
+  if (
+    file.type === "image/gif" ||
+    file.type === "image/svg+xml" ||
+    file.type.includes("icon")
+  ) {
+    return uploadImage(file, folder);
   }
 
   const source = await readFileAsDataUrl(file);
@@ -56,8 +88,14 @@ export async function optimizeImageFileToDataUrl(
       ? file.type
       : "image/jpeg";
 
-  return canvas.toDataURL(outputType, options.quality ?? 0.82);
+  const blob = await canvasToBlob(canvas, outputType, options.quality ?? 0.82);
+  const ext = outputType.split("/")[1] || "jpg";
+  const optimizedFile = new File([blob], `image.${ext}`, { type: outputType });
+  return uploadImage(optimizedFile, folder);
 }
+
+// Explicit alias for new code — same behavior, clearer name.
+export const optimizeAndUploadImage = optimizeImageFileToDataUrl;
 
 export function estimateJsonPayloadSize(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).length;

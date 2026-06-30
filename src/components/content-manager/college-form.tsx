@@ -65,6 +65,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadImage } from "@/lib/upload";
 
 function slugify(text: string) {
   return text
@@ -90,13 +91,9 @@ function readBoolean(...values: unknown[]): boolean {
   return false;
 }
 
+// Uploads to S3 and returns the URL (was base64; name kept for call sites).
 function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
+  return uploadImage(file, "colleges");
 }
 
 function isImageFile(file: File) {
@@ -207,7 +204,7 @@ interface CollegeFormValues {
   college_name: string;
   university_name: string;
   slug: string;
-  approval: string;
+  approval: string[];
   status: string[];
   state: string;
   city: string;
@@ -1879,7 +1876,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
         initialData?.affiliated_with,
       ),
       slug: readString(initialData?.slug),
-      approval: readString(
+      approval: readSelectionList(
         (initialData as Partial<College> & Record<string, unknown>)?.approval,
       ),
       status: readSelectionList(
@@ -2441,6 +2438,32 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     const selectedDisciplines = data.discipline_sections
       .map((section) => section.discipline.trim())
       .filter(Boolean);
+
+    // Map selected discipline / course names to their DB ids so the backend can
+    // connect the College ⇄ CourseCategory / SubCourseCategory relations. Without
+    // these, "Related Colleges" on the site stays empty.
+    const courseCategoryIds = Array.from(
+      new Set(
+        selectedDisciplines
+          .map(
+            (name) =>
+              dbDisciplines.find((d) => d.courses_category_name === name)?.id,
+          )
+          .filter((id): id is number => typeof id === "number"),
+      ),
+    );
+    const subCourseCategoryIds = Array.from(
+      new Set(
+        flattenedCourses
+          .map(
+            (c) =>
+              dbCourses.find(
+                (s) => s.sub_course_category_name === c.course?.trim(),
+              )?.id,
+          )
+          .filter((id): id is number => typeof id === "number"),
+      ),
+    );
     const examAcceptedSummary = Array.from(
       new Set(
         flattenedCourses
@@ -2455,6 +2478,8 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     const payload = {
       ...submitData,
       discipline: selectedDisciplines.join(", "),
+      courseCategoryIds,
+      subCourseCategoryIds,
       courses: flattenedCourses,
       isFeatured: data.featured,
       priority: Number(data.priority) || 1,
@@ -2467,6 +2492,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       gallery: data.gallery,
       exam_accepted: examAcceptedSummary,
       status: data.status.join("; "),
+      approval: data.approval.join("; "),
       admission_counselling: data.admission_counselling.join("; "),
       cityId: selectedCity && selectedCity.id > 0 ? selectedCity.id : undefined,
       city_name: selectedCity?.city || data.city,
@@ -2552,55 +2578,60 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <FL>Approval</FL>
-              <Select
-                value={approvalValue}
-                onValueChange={(value) => form.setValue("approval", value)}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select approval" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Approved by NMC">
-                    Approved by NMC
-                  </SelectItem>
-                  <SelectItem value="Approved by DCI">
-                    Approved by DCI
-                  </SelectItem>
-                  <SelectItem value="Approved by VCI">
-                    Approved by VCI
-                  </SelectItem>
-                  <SelectItem value="Approved by NCISM">
-                    Approved by NCISM
-                  </SelectItem>
-                  <SelectItem value="Approved by NCH">
-                    Approved by NCH
-                  </SelectItem>
-                  <SelectItem value="Approved by CCIM">
-                    Approved by CCIM
-                  </SelectItem>
-                  <SelectItem value="Approved by PCI">
-                    Approved by PCI
-                  </SelectItem>
-                  <SelectItem value="Approved by INC">
-                    Approved by INC
-                  </SelectItem>
-                  <SelectItem value="Approved by ICAR">
-                    Approved by ICAR
-                  </SelectItem>
-                  <SelectItem value="Approved by AICTE">
-                    Approved by AICTE
-                  </SelectItem>
-                  <SelectItem value="Approved by DGCA">
-                    Approved by DGCA
-                  </SelectItem>
-                  <SelectItem value="Approved by BCI">
-                    Approved by BCI
-                  </SelectItem>
-                  <SelectItem value="Approved by SBTE">
-                    Approved by SBTE
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className={cn(
+                    inputCls,
+                    "flex w-full items-center justify-between px-3 text-sm",
+                  )}
+                >
+                  <span className="truncate text-left">
+                    {(approvalValue as string[]).length > 0 ? (
+                      (approvalValue as string[]).join(", ")
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Select approval
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64" align="start">
+                  {(
+                    [
+                      "Approved by NMC",
+                      "Approved by DCI",
+                      "Approved by VCI",
+                      "Approved by NCISM",
+                      "Approved by NCH",
+                      "Approved by CCIM",
+                      "Approved by PCI",
+                      "Approved by INC",
+                      "Approved by ICAR",
+                      "Approved by AICTE",
+                      "Approved by DGCA",
+                      "Approved by BCI",
+                      "Approved by SBTE",
+                    ] as const
+                  ).map((option) => (
+                    <DropdownMenuCheckboxItem
+                      key={option}
+                      checked={(approvalValue as string[]).includes(option)}
+                      onCheckedChange={(checked) => {
+                        const next = checked
+                          ? [...(approvalValue as string[]), option]
+                          : (approvalValue as string[]).filter(
+                              (v) => v !== option,
+                            );
+                        form.setValue("approval", next, { shouldDirty: true });
+                      }}
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      {option}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="space-y-1.5">
               <FL>Status</FL>

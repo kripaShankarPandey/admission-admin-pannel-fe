@@ -1,11 +1,18 @@
 import { apiClient } from "@/lib/api-client";
 
+export const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "CLOSED"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
 export interface ContactLead {
   id: number;
   name: string;
   email: string;
-  phone?: string;
+  number?: string;
+  subject?: string;
   message: string;
+  courseInterest?: string | null;
+  preferredTime?: string | null;
+  status?: LeadStatus;
   createdAt: string;
 }
 
@@ -20,6 +27,11 @@ export const leadService = {
     const response = await apiClient.get<{ data: ContactLead[] } | ContactLead[]>("/contact-us");
     const payload = response.data;
     return Array.isArray(payload) ? payload : (payload.data ?? []);
+  },
+
+  async updateContactLeadStatus(id: number, status: LeadStatus) {
+    const response = await apiClient.patch(`/contact-us/${id}/status`, { status });
+    return response.data;
   },
 
   async deleteContactLead(id: number) {

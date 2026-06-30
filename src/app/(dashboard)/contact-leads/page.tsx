@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { leadService, type ContactLead } from "@/services/lead-service";
+import {
+    leadService,
+    LEAD_STATUSES,
+    type ContactLead,
+    type LeadStatus,
+} from "@/services/lead-service";
 import {
     Table,
     TableBody,
@@ -11,17 +16,39 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Mail, Phone, MessageSquare, X } from "lucide-react";
+import { Trash2, MessageSquare, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { TableStateRow } from "@/components/content-manager/table-state-row";
 
+const STATUS_STYLES: Record<LeadStatus, string> = {
+    NEW: "bg-blue-100 text-blue-700 border-blue-200",
+    CONTACTED: "bg-amber-100 text-amber-700 border-amber-200",
+    CONVERTED: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    CLOSED: "bg-slate-100 text-slate-600 border-slate-200",
+};
+
 export default function ContactLeadsPage() {
     const [leads, setLeads] = useState<ContactLead[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<LeadStatus | "ALL">("ALL");
     const [selectedLead, setSelectedLead] = useState<ContactLead | null>(null);
+
+    async function handleStatusChange(id: number, status: LeadStatus) {
+        // Optimistic update
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
+        setSelectedLead((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
+        try {
+            await leadService.updateContactLeadStatus(id, status);
+            toast.success(`Lead marked ${status.toLowerCase()}.`);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to update status.");
+            fetchLeads();
+        }
+    }
 
     useEffect(() => {
         fetchLeads();
@@ -54,10 +81,23 @@ export default function ContactLeadsPage() {
         }
     }
 
-    const filteredLeads = leads.filter(lead =>
-        lead.name.toLowerCase().includes(search.toLowerCase()) ||
-        lead.email.toLowerCase().includes(search.toLowerCase()) ||
-        lead.message.toLowerCase().includes(search.toLowerCase())
+    const filteredLeads = leads.filter(lead => {
+        const matchesSearch =
+            lead.name.toLowerCase().includes(search.toLowerCase()) ||
+            lead.email.toLowerCase().includes(search.toLowerCase()) ||
+            lead.message.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+            statusFilter === "ALL" || (lead.status ?? "NEW") === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
+
+    const statusCounts = leads.reduce(
+        (acc, l) => {
+            const s = (l.status ?? "NEW") as LeadStatus;
+            acc[s] = (acc[s] ?? 0) + 1;
+            return acc;
+        },
+        {} as Record<LeadStatus, number>,
     );
 
     return (
@@ -87,10 +127,40 @@ export default function ContactLeadsPage() {
                             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Email</label>
                             <a href={`mailto:${selectedLead.email}`} className="text-sm text-primary hover:underline">{selectedLead.email}</a>
                         </div>
-                        {selectedLead.phone && (
+                        {selectedLead.number && (
                             <div>
                                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Phone</label>
-                                <a href={`tel:${selectedLead.phone}`} className="text-sm text-primary hover:underline">{selectedLead.phone}</a>
+                                <a href={`tel:${selectedLead.number}`} className="text-sm text-primary hover:underline">{selectedLead.number}</a>
+                            </div>
+                        )}
+                        <div>
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Status</label>
+                            <select
+                                value={selectedLead.status ?? "NEW"}
+                                onChange={(e) => handleStatusChange(selectedLead.id, e.target.value as LeadStatus)}
+                                className={`text-xs font-bold uppercase tracking-wide rounded-lg border px-3 py-1.5 cursor-pointer outline-none ${STATUS_STYLES[(selectedLead.status ?? "NEW") as LeadStatus]}`}
+                            >
+                                {LEAD_STATUSES.map((s) => (
+                                    <option key={s} value={s} className="bg-card text-foreground">{s}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {selectedLead.subject && (
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Subject</label>
+                                <p className="text-sm text-foreground">{selectedLead.subject}</p>
+                            </div>
+                        )}
+                        {selectedLead.courseInterest && (
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Course Interest</label>
+                                <p className="text-sm text-foreground">{selectedLead.courseInterest}</p>
+                            </div>
+                        )}
+                        {selectedLead.preferredTime && (
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Preferred Call Time</label>
+                                <p className="text-sm text-foreground">{selectedLead.preferredTime}</p>
                             </div>
                         )}
                         <div>
@@ -131,33 +201,63 @@ export default function ContactLeadsPage() {
             onSearchChange={setSearch}
             searchPlaceholder="Search by name, email, or message..."
         >
+            {/* Status filter chips */}
+            <div className="flex flex-wrap gap-2 px-1 pb-4">
+                {(["ALL", ...LEAD_STATUSES] as const).map((s) => {
+                    const active = statusFilter === s;
+                    const count = s === "ALL" ? leads.length : (statusCounts[s] ?? 0);
+                    return (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s)}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                                active
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-card text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                        >
+                            {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+                            <span className="ml-1.5 opacity-70">{count}</span>
+                        </button>
+                    );
+                })}
+            </div>
             <Table>
                 <TableHeader className="bg-card">
                     <TableRow className="hover:bg-transparent border-b border-border/50">
-                        <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
+                        <TableHead className="w-[70px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">ID</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Name</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Email</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Phone</TableHead>
-                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Message</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Course Interest</TableHead>
+                        <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Status</TableHead>
                         <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Date</TableHead>
                         <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
-                        <TableStateRow colSpan={6} isLoading emptyLabel="" />
+                        <TableStateRow colSpan={8} isLoading emptyLabel="" />
                     ) : (filteredLeads?.length || 0) > 0 ? (
-                        filteredLeads.map(lead => (
+                        filteredLeads.map(lead => {
+                            const status = (lead.status ?? "NEW") as LeadStatus;
+                            return (
                             <TableRow key={lead.id} className="group hover:bg-muted/50 border-b border-border/50 cursor-pointer" onClick={() => setSelectedLead(lead)}>
                                 <TableCell className="text-muted-foreground font-medium text-[13px]">#{lead.id}</TableCell>
                                 <TableCell className="font-semibold text-foreground text-[13px]">{lead.name}</TableCell>
                                 <TableCell className="text-muted-foreground text-[13px]">{lead.email}</TableCell>
-                                <TableCell className="text-muted-foreground text-[13px]">{lead.phone || '—'}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-start gap-2 max-w-xs">
-                                        <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                                        <p className="text-muted-foreground line-clamp-2 text-[13px]">{lead.message}</p>
-                                    </div>
+                                <TableCell className="text-muted-foreground text-[13px]">{lead.number || '—'}</TableCell>
+                                <TableCell className="text-muted-foreground text-[13px]">{lead.courseInterest || '—'}</TableCell>
+                                <TableCell onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                        value={status}
+                                        onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)}
+                                        className={`text-[11px] font-bold uppercase tracking-wide rounded-full border px-2.5 py-1 cursor-pointer outline-none ${STATUS_STYLES[status]}`}
+                                    >
+                                        {LEAD_STATUSES.map((s) => (
+                                            <option key={s} value={s} className="bg-card text-foreground">{s}</option>
+                                        ))}
+                                    </select>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-[13px] whitespace-nowrap">
                                     {format(new Date(lead.createdAt), "MMM dd, yyyy")}
@@ -173,9 +273,10 @@ export default function ContactLeadsPage() {
                                     </Button>
                                 </TableCell>
                             </TableRow>
-                        ))
+                            );
+                        })
                     ) : (
-                        <TableStateRow colSpan={6} emptyLabel="No contact leads found." />
+                        <TableStateRow colSpan={8} emptyLabel="No contact leads found." />
                     )}
                 </TableBody>
             </Table>

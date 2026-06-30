@@ -21,16 +21,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Plus, Trash2, ArrowLeft, UploadCloud, GripVertical, Image as ImageIcon, Search } from "lucide-react";
+import { uploadImage } from "@/lib/upload";
 
-// Helper function to convert file to base64
-const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = (error) => reject(error);
-    });
-};
+// Uploads the image to S3 and returns its URL. (Kept the original name so the
+// existing call sites work unchanged; images are no longer stored as base64.)
+const fileToBase64 = (file: File): Promise<string> => uploadImage(file, "courses");
 
 interface SubCategoryFormProps {
     courseId?: string | number;

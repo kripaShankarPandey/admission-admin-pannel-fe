@@ -30,6 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Edit, Trash2, User, Upload, X } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImage } from "@/lib/upload";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -120,16 +121,15 @@ export default function CounselorsPage() {
         form.setValue("profile", url);
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const dataUrl = reader.result as string;
-                setImagePreview(dataUrl);
-                form.setValue("profile", dataUrl);
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+        try {
+            const url = await uploadImage(file, "counselors");
+            setImagePreview(url);
+            form.setValue("profile", url);
+        } catch {
+            toast.error("Image upload failed.");
         }
     };
 
