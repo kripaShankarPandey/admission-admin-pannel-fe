@@ -20,7 +20,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Edit, Eye, Trash2, MoreHorizontal } from "lucide-react";
+import { siteUrl } from "@/lib/site";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
@@ -207,6 +208,18 @@ export default function SubCategoriesPage() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
+                                                {sub.slug && (
+                                                    <a
+                                                        href={siteUrl(`/courses/${sub.slug}`)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        title="View on website"
+                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted"
+                                                    >
+                                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                                    </a>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

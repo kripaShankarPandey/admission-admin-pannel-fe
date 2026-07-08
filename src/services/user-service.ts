@@ -10,6 +10,10 @@ export interface User {
   id: number;
   email: string;
   username: string | null;
+  name?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  state?: string | null;
   confirmed: boolean;
   role: AdmRole;
   permissions?: string[] | null;

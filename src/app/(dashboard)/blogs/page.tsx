@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Image as ImageIcon, FileText } from "lucide-react";
+import { Edit, Eye, Trash2, Image as ImageIcon, FileText } from "lucide-react";
+import { siteUrl } from "@/lib/site";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
@@ -187,6 +188,17 @@ export default function BlogsPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {blog.slug && (
+                                            <a
+                                                href={siteUrl(`/blogs/${blog.slug}`)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="View on website"
+                                                className="inline-flex h-8 w-8 items-center justify-center p-0 bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground rounded-md"
+                                            >
+                                                <Eye className="h-4 w-4" />
+                                            </a>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"

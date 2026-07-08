@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Star, Image as ImageIcon } from "lucide-react";
+import { Edit, Eye, Trash2, Star, Image as ImageIcon } from "lucide-react";
+import { siteUrl } from "@/lib/site";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
 import { Pagination } from "@/components/pagination";
@@ -130,6 +131,17 @@ export default function LatestNewsPage() {
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-1">
+                  {item.slug && (
+                    <a
+                      href={siteUrl(`/news/${item.slug}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="View on website"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"
+                    >
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                    </a>
+                  )}
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push(`/home-settings/latest-news/edit/${item.id}`)}>
                     <Edit className="h-3.5 w-3.5" />
                   </Button>

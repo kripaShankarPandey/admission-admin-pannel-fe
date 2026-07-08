@@ -53,12 +53,18 @@ export default function UsersPage() {
   };
 
   // Only show registered website users (role: 'user')
-  const filteredUsers = users.filter(
-    (user) =>
-      user.role === "user" &&
-      (user.email.toLowerCase().includes(search.toLowerCase()) ||
-        (user.username && user.username.toLowerCase().includes(search.toLowerCase())))
-  );
+  const filteredUsers = users.filter((user) => {
+    if (user.role !== "user") return false;
+    const q = search.toLowerCase();
+    return (
+      user.email.toLowerCase().includes(q) ||
+      (user.username?.toLowerCase().includes(q) ?? false) ||
+      (user.name?.toLowerCase().includes(q) ?? false) ||
+      (user.phone?.toLowerCase().includes(q) ?? false) ||
+      (user.city?.toLowerCase().includes(q) ?? false) ||
+      (user.state?.toLowerCase().includes(q) ?? false)
+    );
+  });
 
   return (
     <>
@@ -80,12 +86,34 @@ export default function UsersPage() {
               <p className="text-sm text-foreground">{selectedUser.id}</p>
             </div>
             <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Name</label>
+              <p className="text-sm text-foreground">{selectedUser.name || '—'}</p>
+            </div>
+            <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Username</label>
               <p className="text-sm text-foreground">{selectedUser.username || '—'}</p>
             </div>
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Email</label>
               <a href={`mailto:${selectedUser.email}`} className="text-sm text-primary hover:underline">{selectedUser.email}</a>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Phone</label>
+              {selectedUser.phone ? (
+                <a href={`tel:${selectedUser.phone}`} className="text-sm text-primary hover:underline">{selectedUser.phone}</a>
+              ) : (
+                <p className="text-sm text-foreground">—</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">City</label>
+                <p className="text-sm text-foreground">{selectedUser.city || '—'}</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">State</label>
+                <p className="text-sm text-foreground">{selectedUser.state || '—'}</p>
+              </div>
             </div>
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Status</label>
@@ -133,7 +161,7 @@ export default function UsersPage() {
       description="View and manage standard registered user accounts on the website."
       count={filteredUsers.length}
       onSearchChange={setSearch}
-      searchPlaceholder="Search by username or email..."
+      searchPlaceholder="Search by name, email, phone, city or state..."
     >
       <Table>
         <TableHeader className="bg-card">
@@ -148,6 +176,15 @@ export default function UsersPage() {
               Email
             </TableHead>
             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+              Phone
+            </TableHead>
+            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+              City
+            </TableHead>
+            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+              State
+            </TableHead>
+            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
               Confirmed
             </TableHead>
             <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -160,7 +197,7 @@ export default function UsersPage() {
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableStateRow colSpan={6} isLoading emptyLabel="" />
+            <TableStateRow colSpan={9} isLoading emptyLabel="" />
           ) : filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
               <TableRow
@@ -176,6 +213,15 @@ export default function UsersPage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground text-[13px]">
                   {user?.email || "N/A"}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-[13px]">
+                  {user?.phone || "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-[13px]">
+                  {user?.city || "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-[13px]">
+                  {user?.state || "—"}
                 </TableCell>
                 <TableCell>
                   {user?.confirmed ? (
@@ -207,7 +253,7 @@ export default function UsersPage() {
               </TableRow>
             ))
           ) : (
-            <TableStateRow colSpan={6} emptyLabel="No registered users found." />
+            <TableStateRow colSpan={9} emptyLabel="No registered users found." />
           )}
         </TableBody>
       </Table>

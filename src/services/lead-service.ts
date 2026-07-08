@@ -22,6 +22,17 @@ export interface NewsletterLead {
   createdAt: string;
 }
 
+export interface CounselorLead {
+  id: number;
+  name: string;
+  phone: string;
+  collegeName?: string | null;
+  counselorId?: number | null;
+  counselorName?: string | null;
+  status?: LeadStatus;
+  createdAt: string;
+}
+
 export const leadService = {
   async getContactLeads() {
     const response = await apiClient.get<{ data: ContactLead[] } | ContactLead[]>("/contact-us");
@@ -36,6 +47,22 @@ export const leadService = {
 
   async deleteContactLead(id: number) {
     const response = await apiClient.delete(`/contact-us/${id}`);
+    return response.data;
+  },
+
+  async getCounselorLeads() {
+    const response = await apiClient.get<{ data: CounselorLead[] } | CounselorLead[]>("/counselor-lead");
+    const payload = response.data;
+    return Array.isArray(payload) ? payload : (payload.data ?? []);
+  },
+
+  async updateCounselorLeadStatus(id: number, status: LeadStatus) {
+    const response = await apiClient.patch(`/counselor-lead/${id}/status`, { status });
+    return response.data;
+  },
+
+  async deleteCounselorLead(id: number) {
+    const response = await apiClient.delete(`/counselor-lead/${id}`);
     return response.data;
   },
 

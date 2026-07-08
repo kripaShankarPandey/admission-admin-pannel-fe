@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { RouteGuard } from "@/components/route-guard";
+import { ExternalLink } from "lucide-react";
+import { siteUrl } from "@/lib/site";
 
 export default function DashboardLayout({
     children,
@@ -32,7 +34,15 @@ export default function DashboardLayout({
                         <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Admission Today / Dashboard</span>
                     </div>
                     <div className="flex items-center gap-4">
-                        {/* Add any global actions here like notifications or help */}
+                        <a
+                            href={siteUrl()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-slate-900 px-3 text-xs font-medium text-white transition-colors hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                            Visit Website
+                        </a>
                     </div>
                 </header>
                 <div className="flex flex-1 flex-col gap-4 p-6 overflow-auto">
