@@ -59,7 +59,12 @@ const AVAILABLE_PERMISSIONS = [
   { id: "reach-us", label: "Reach Us Locations", description: "Manage transport directions" },
   { id: "home-page", label: "Home Page Copy / SEO", description: "Edit SEO block & banner slides" },
   { id: "latest-news", label: "Latest News Marquee", description: "Publish latest breaking news" },
+  { id: "exam-dates", label: "Exam Dates", description: "Manage the important exam dates section" },
+  { id: "scholarships", label: "Scholarships", description: "Manage the scholarships section" },
+  { id: "faqs", label: "FAQs", description: "Manage the home page FAQ section" },
   { id: "contact-leads", label: "Contact Leads", description: "Review contact form requests" },
+  { id: "counselor-leads", label: "Counselor Leads", description: "Review counselor connect requests" },
+  { id: "reviews", label: "Reviews", description: "Moderate college reviews" },
   { id: "newsletter-leads", label: "Newsletter Leads", description: "View subscriber emails" },
   { id: "settings", label: "Global Settings", description: "Edit company details & logo" },
   { id: "website-users", label: "Website Users", description: "View and delete registered website users" },
@@ -511,11 +516,26 @@ export default function AdminUsersPage() {
                 ) : (
                   /* Editor Permissions Configuration */
                   <div className="space-y-4 h-full min-h-[280px] animate-in fade-in-50 duration-200 flex flex-col">
-                    <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Editor Section Access</h4>
-                      <p className="text-[10px] text-muted-foreground leading-normal">
-                        Toggle checkboxes below to restrict which segments of the dashboard this Editor is authorized to manage.
-                      </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Editor Section Access</h4>
+                        <p className="text-[10px] text-muted-foreground leading-normal">
+                          Toggle checkboxes below to restrict which segments of the dashboard this Editor is authorized to manage.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPermissions(
+                            permissions.length === AVAILABLE_PERMISSIONS.length
+                              ? []
+                              : AVAILABLE_PERMISSIONS.map((p) => p.id),
+                          )
+                        }
+                        className="shrink-0 text-[10px] font-bold text-primary hover:underline whitespace-nowrap"
+                      >
+                        {permissions.length === AVAILABLE_PERMISSIONS.length ? "Clear all" : "Select all"}
+                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto max-h-[260px] pr-1 pb-2 flex-1 scrollbar-none">

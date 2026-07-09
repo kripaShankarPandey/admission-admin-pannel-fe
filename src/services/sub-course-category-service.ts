@@ -22,11 +22,39 @@ export interface SubCategoryQueryParams {
   pageSize?: number;
   search?: string;
   courseCategoryId?: number;
+  courseLevel?: string;
+}
+
+export interface CourseBulkUploadResult {
+  totalRows: number;
+  created: number;
+  updated: number;
+  failed: number;
+  errors: Array<{ row: number; name?: string; message: string }>;
 }
 
 export const subCourseCategoryService = {
   async getAll(params?: SubCategoryQueryParams) {
     const response = await apiClient.get<PaginatedResponse<SubCourseCategory>>("/sub-course-category", { params });
+    return response.data;
+  },
+
+  async bulkUpload(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await apiClient.post<CourseBulkUploadResult>(
+      "/sub-course-category/bulk-upload",
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data;
+  },
+
+  async downloadBulkUploadTemplate() {
+    const response = await apiClient.get<Blob>(
+      "/sub-course-category/bulk-upload-template",
+      { responseType: "blob" },
+    );
     return response.data;
   },
 

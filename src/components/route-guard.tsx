@@ -10,15 +10,16 @@ function getPathPermission(pathname: string): string | null {
   if (pathname.startsWith('/cities')) return 'cities';
   if (pathname.startsWith('/discipline') || pathname.startsWith('/courses')) return 'courses';
   if (pathname.startsWith('/contact-leads')) return 'contact-leads';
-  if (pathname.startsWith('/counselor-leads')) return 'contact-leads';
+  if (pathname.startsWith('/counselor-leads')) return 'counselor-leads';
+  if (pathname.startsWith('/reviews')) return 'reviews';
   if (pathname.startsWith('/counselors')) return 'counselors';
   if (pathname.startsWith('/newsletter-leads')) return 'newsletter-leads';
   if (pathname.startsWith('/reach-us')) return 'reach-us';
   if (pathname.startsWith('/home-settings/banner')) return 'home-page';
   if (pathname.startsWith('/home-settings/latest-news')) return 'latest-news';
-  if (pathname.startsWith('/exam-dates')) return 'home-page';
-  if (pathname.startsWith('/scholarships')) return 'home-page';
-  if (pathname.startsWith('/faqs')) return 'home-page';
+  if (pathname.startsWith('/exam-dates')) return 'exam-dates';
+  if (pathname.startsWith('/scholarships')) return 'scholarships';
+  if (pathname.startsWith('/faqs')) return 'faqs';
   if (pathname.startsWith('/home-settings/seo-content')) return 'home-page';
   if (pathname.startsWith('/settings/admin-users')) return 'users_management'; // strictly super_admin
   if (pathname.startsWith('/settings')) return 'settings';

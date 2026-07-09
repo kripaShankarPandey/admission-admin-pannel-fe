@@ -73,9 +73,9 @@ const navSections: NavSection[] = [
       { title: "Banner", icon: Layers, url: "/home-settings/banner", permission: "home-page" },
       { title: "Latest News", icon: Newspaper, url: "/home-settings/latest-news", permission: "latest-news" },
       { title: "SEO Content", icon: FileText, url: "/home-settings/seo-content", permission: "home-page" },
-      { title: "Exam Dates", icon: CalendarDays, url: "/exam-dates", permission: "home-page" },
-      { title: "Scholarships", icon: Award, url: "/scholarships", permission: "home-page" },
-      { title: "FAQs", icon: HelpCircle, url: "/faqs", permission: "home-page" },
+      { title: "Exam Dates", icon: CalendarDays, url: "/exam-dates", permission: "exam-dates" },
+      { title: "Scholarships", icon: Award, url: "/scholarships", permission: "scholarships" },
+      { title: "FAQs", icon: HelpCircle, url: "/faqs", permission: "faqs" },
     ],
   },
   {
@@ -93,8 +93,8 @@ const navSections: NavSection[] = [
     title: "Leads & People",
     items: [
       { title: "Contact Leads", icon: Mail, url: "/contact-leads", permission: "contact-leads" },
-      { title: "Counselor Leads", icon: Headset, url: "/counselor-leads", permission: "contact-leads" },
-      { title: "Reviews", icon: Star, url: "/reviews", permission: "contact-leads" },
+      { title: "Counselor Leads", icon: Headset, url: "/counselor-leads", permission: "counselor-leads" },
+      { title: "Reviews", icon: Star, url: "/reviews", permission: "reviews" },
       { title: "Counselors", icon: Users, url: "/counselors", permission: "counselors" },
       { title: "Newsletter", icon: Bell, url: "/newsletter-leads", permission: "newsletter-leads" },
       { title: "Website Users", icon: UserCircle, url: "/users", permission: "website-users" },

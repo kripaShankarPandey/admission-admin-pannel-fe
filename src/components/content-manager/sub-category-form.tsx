@@ -293,12 +293,27 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={control} name="courseLevel" render={({ field }) => (
+                            <FormField control={control} name="courseLevel" render={({ field }) => {
+                                const LEVELS = ["UG", "PG", "Diploma", "Doctorate", "Cert", "Other"];
+                                const options = field.value && !LEVELS.includes(field.value)
+                                    ? [field.value, ...LEVELS]
+                                    : LEVELS;
+                                return (
                                 <FormItem>
                                     <FormLabel>Course Level</FormLabel>
-                                    <FormControl><Input placeholder="e.g. Post Graduate" {...field} /></FormControl>
+                                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {options.map((lvl) => (
+                                                <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </FormItem>
-                            )} />
+                                );
+                            }} />
                             <FormField control={control} name="duration" render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Duration</FormLabel>

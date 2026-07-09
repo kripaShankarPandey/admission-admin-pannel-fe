@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { subCourseCategoryService, type SubCourseCategory } from "@/services/sub-course-category-service";
 import { courseCategoryService, type CourseCategory } from "@/services/course-category-service";
@@ -20,7 +20,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, Trash2, MoreHorizontal } from "lucide-react";
+import { Edit, Eye, Trash2, MoreHorizontal, Upload, Download, Loader2 } from "lucide-react";
 import { siteUrl } from "@/lib/site";
 import { toast } from "sonner";
 import { PaginationMeta } from "@/services/types";
@@ -38,7 +38,56 @@ export default function SubCategoriesPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+    const [selectedLevel, setSelectedLevel] = useState<string>("all");
     const pageSize = 20;
+
+    const COURSE_LEVELS = ["UG", "PG", "Diploma", "Doctorate", "Cert", "Other"];
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploading, setUploading] = useState(false);
+    const [downloadingTpl, setDownloadingTpl] = useState(false);
+
+    const handleDownloadTemplate = async () => {
+        setDownloadingTpl(true);
+        try {
+            const blob = await subCourseCategoryService.downloadBulkUploadTemplate();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "course-bulk-upload-template.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to download template.");
+        } finally {
+            setDownloadingTpl(false);
+        }
+    };
+
+    const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (e.target) e.target.value = "";
+        if (!file) return;
+        setUploading(true);
+        try {
+            const res = await subCourseCategoryService.bulkUpload(file);
+            toast.success(
+                `Import done — ${res.created} created, ${res.updated} updated${res.failed ? `, ${res.failed} failed` : ""}.`,
+            );
+            if (res.failed && res.errors?.length) {
+                console.warn("Bulk upload errors:", res.errors);
+                toast.error(`${res.failed} row(s) failed. See console for details.`);
+            }
+            setCurrentPage(1);
+            fetchSubCategories();
+        } catch (error) {
+            console.error(error);
+            toast.error("Bulk upload failed. Check the file format.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     const debouncedSearch = useDebounce(search, 500);
 
@@ -50,7 +99,8 @@ export default function SubCategoriesPage() {
                 page: currentPage,
                 pageSize,
                 search: debouncedSearch || undefined,
-                courseCategoryId: selectedCategoryId !== "all" ? Number(selectedCategoryId) : undefined
+                courseCategoryId: selectedCategoryId !== "all" ? Number(selectedCategoryId) : undefined,
+                courseLevel: selectedLevel !== "all" ? selectedLevel : undefined
             });
             setSubCategories(response.data || []);
             setMeta(response?.meta?.pagination || null);
@@ -61,7 +111,7 @@ export default function SubCategoriesPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [currentPage, debouncedSearch, selectedCategoryId]);
+    }, [currentPage, debouncedSearch, selectedCategoryId, selectedLevel]);
 
     const fetchAllCategories = async () => {
         try {
@@ -96,7 +146,7 @@ export default function SubCategoriesPage() {
         }
     };
 
-    const hasActiveFilters = selectedCategoryId !== "all";
+    const hasActiveFilters = selectedCategoryId !== "all" || selectedLevel !== "all";
 
     return (
         <>
@@ -110,6 +160,33 @@ export default function SubCategoriesPage() {
                 }}
                 actions={
                     <div className="flex items-center gap-2">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            className="hidden"
+                            onChange={handleFileSelected}
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownloadTemplate}
+                            disabled={downloadingTpl}
+                            className="h-9 px-3 text-xs font-semibold rounded-lg gap-1.5"
+                        >
+                            {downloadingTpl ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                            Template
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="h-9 px-3 text-xs font-semibold rounded-lg gap-1.5"
+                        >
+                            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                            {uploading ? "Uploading..." : "Bulk Upload"}
+                        </Button>
                         <Select
                             value={selectedCategoryId}
                             onValueChange={(val) => {
@@ -129,12 +206,32 @@ export default function SubCategoriesPage() {
                                 ))}
                             </SelectContent>
                         </Select>
+                        <Select
+                            value={selectedLevel}
+                            onValueChange={(val) => {
+                                setSelectedLevel(val);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <SelectTrigger className="h-9 w-[150px] bg-background border-border/50 text-xs font-semibold rounded-lg">
+                                <SelectValue placeholder="All Levels" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Levels</SelectItem>
+                                {COURSE_LEVELS.map((lvl) => (
+                                    <SelectItem key={lvl} value={lvl}>
+                                        {lvl}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         {hasActiveFilters && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                     setSelectedCategoryId("all");
+                                    setSelectedLevel("all");
                                     setCurrentPage(1);
                                 }}
                                 className="h-9 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded-lg"
