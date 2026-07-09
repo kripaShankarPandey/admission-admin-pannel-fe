@@ -18,6 +18,7 @@ function getPathPermission(pathname: string): string | null {
   if (pathname.startsWith('/home-settings/latest-news')) return 'latest-news';
   if (pathname.startsWith('/exam-dates')) return 'home-page';
   if (pathname.startsWith('/scholarships')) return 'home-page';
+  if (pathname.startsWith('/faqs')) return 'home-page';
   if (pathname.startsWith('/home-settings/seo-content')) return 'home-page';
   if (pathname.startsWith('/settings/admin-users')) return 'users_management'; // strictly super_admin
   if (pathname.startsWith('/settings')) return 'settings';

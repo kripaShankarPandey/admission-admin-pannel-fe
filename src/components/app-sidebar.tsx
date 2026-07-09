@@ -11,6 +11,7 @@ import {
   FileText,
   GraduationCap,
   Headset,
+  HelpCircle,
   Home,
   Layers,
   LayoutDashboard,
@@ -74,6 +75,7 @@ const navSections: NavSection[] = [
       { title: "SEO Content", icon: FileText, url: "/home-settings/seo-content", permission: "home-page" },
       { title: "Exam Dates", icon: CalendarDays, url: "/exam-dates", permission: "home-page" },
       { title: "Scholarships", icon: Award, url: "/scholarships", permission: "home-page" },
+      { title: "FAQs", icon: HelpCircle, url: "/faqs", permission: "home-page" },
     ],
   },
   {
