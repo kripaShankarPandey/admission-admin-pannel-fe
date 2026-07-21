@@ -443,7 +443,7 @@ export default function SeoContentSettingsPage() {
               <CardContent className="pt-4 space-y-3">
                 {topic.links.length === 0 ? (
                   <div className="text-center text-xs text-muted-foreground py-6 border border-dashed border-border/70 rounded-lg">
-                    No links added yet. Click "Add Link" below.
+                    No links added yet. Click &quot;Add Link&quot; below.
                   </div>
                 ) : (
                   <div className="space-y-2">

@@ -30,9 +30,16 @@ function getPathPermission(pathname: string): string | null {
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [authorized, setAuthorized] = useState(false);
+  // Tracks *which* path was approved, not just a boolean: a plain flag stays
+  // true after navigating to a page the editor may not open, so the forbidden
+  // page renders until the redirect lands.
+  const [authorizedPath, setAuthorizedPath] = useState<string | null>(null);
+  const authorized = authorizedPath === pathname;
   const [, startTransition] = useTransition();
 
+  // localStorage is unavailable while server-rendering, so this check cannot
+  // move into render without causing a hydration mismatch.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const storedUser = localStorage.getItem("admin_user");
     if (!storedUser) {
@@ -43,9 +50,12 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const user = JSON.parse(storedUser);
+      const user = JSON.parse(storedUser) as {
+        role?: string;
+        permissions?: string[];
+      };
       if (user.role === "super_admin") {
-        setAuthorized(true);
+        setAuthorizedPath(pathname);
         return;
       }
 
@@ -67,7 +77,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
             return;
           }
         }
-        setAuthorized(true);
+        setAuthorizedPath(pathname);
         return;
       }
 
@@ -76,7 +86,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       startTransition(() => {
         router.push("/login");
       });
-    } catch (e) {
+    } catch {
       startTransition(() => {
         router.push("/login");
       });

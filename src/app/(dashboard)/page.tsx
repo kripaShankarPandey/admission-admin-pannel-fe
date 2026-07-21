@@ -332,7 +332,11 @@ export default function DashboardPage() {
                   {recentLeads.map((lead) => {
                     const initials = lead.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
                     return (
-                      <div key={lead.id} className="flex items-start gap-3 py-3 group">
+                      <Link
+                        key={lead.id}
+                        href={`/contact-leads?lead=${lead.id}`}
+                        className="flex items-start gap-3 py-3 group -mx-2 px-2 rounded-lg hover:bg-muted/40 transition-colors"
+                      >
                         <Avatar className="h-9 w-9 border border-border/50 shrink-0">
                           <AvatarFallback className="bg-amber-500/10 text-amber-700 text-[11px] font-bold">
                             {initials}
@@ -340,7 +344,7 @@ export default function DashboardPage() {
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-[13px] font-semibold text-foreground truncate">{lead.name}</p>
+                            <p className="text-[13px] font-semibold text-foreground truncate group-hover:text-primary transition-colors">{lead.name}</p>
                             <span className="text-[10px] text-muted-foreground/70 shrink-0 bg-muted px-1.5 py-0.5 rounded">
                               #{lead.id}
                             </span>
@@ -353,7 +357,7 @@ export default function DashboardPage() {
                             {formatDistanceToNow(new Date(lead.createdAt), { addSuffix: true })}
                           </span>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -455,7 +459,11 @@ export default function DashboardPage() {
             ) : (
               <div className="divide-y divide-border/40">
                 {recentBlogs.map((blog) => (
-                  <div key={blog.id} className="py-3 flex items-start justify-between gap-3 group">
+                  <Link
+                    key={blog.id}
+                    href={`/blogs/edit/${blog.id}`}
+                    className="py-3 flex items-start justify-between gap-3 group -mx-2 px-2 rounded-lg hover:bg-muted/40 transition-colors"
+                  >
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                         {blog.title}
@@ -484,7 +492,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -523,7 +531,11 @@ export default function DashboardPage() {
             ) : (
               <div className="divide-y divide-border/40">
                 {recentNews.map((news) => (
-                  <div key={news.id} className="py-3 flex items-start justify-between gap-3 group">
+                  <Link
+                    key={news.id}
+                    href={`/home-settings/latest-news/edit/${news.id}`}
+                    className="py-3 flex items-start justify-between gap-3 group -mx-2 px-2 rounded-lg hover:bg-muted/40 transition-colors"
+                  >
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                         {news.title}
@@ -552,7 +564,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

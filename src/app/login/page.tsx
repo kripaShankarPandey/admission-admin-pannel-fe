@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,8 +10,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-    Card,
-    CardContent,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,9 +44,9 @@ export default function LoginPage() {
             await authService.login(values);
             toast.success("Login successful!");
             router.push("/");
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
-            toast.error(error.response?.data?.message || "Login failed. Please check your credentials.");
+            toast.error(apiErrorMessage(error, "Login failed. Please check your credentials."));
         } finally {
             setIsLoading(false);
         }
@@ -133,7 +132,7 @@ export default function LoginPage() {
                             </div>
                             
                             <p className="text-base leading-relaxed text-zinc-300">
-                                "The central hub for managing complete admission lifecycles, engaging leads seamlessly, and controlling application ecosystems securely."
+                                &quot;The central hub for managing complete admission lifecycles, engaging leads seamlessly, and controlling application ecosystems securely.&quot;
                             </p>
                             
                             <div className="mt-8 flex items-center gap-4">

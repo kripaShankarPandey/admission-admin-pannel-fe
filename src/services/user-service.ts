@@ -21,6 +21,13 @@ export interface User {
   updatedAt: string;
 }
 
+export type CreateUserPayload = Pick<User, "email" | "username" | "role"> &
+  Partial<Pick<User, "name" | "phone" | "city" | "state" | "permissions">> & {
+    password: string;
+  };
+
+export type UpdateUserPayload = Partial<CreateUserPayload>;
+
 export const userService = {
   async getAll() {
     const response = await apiClient.get<User[]>("/users");
@@ -32,12 +39,12 @@ export const userService = {
     return response.data;
   },
 
-  async create(data: any) {
+  async create(data: CreateUserPayload) {
     const response = await apiClient.post<User>("/users", data);
     return response.data;
   },
 
-  async update(id: number, data: any) {
+  async update(id: number, data: UpdateUserPayload) {
     const response = await apiClient.patch<User>(`/users/${id}`, data);
     return response.data;
   },

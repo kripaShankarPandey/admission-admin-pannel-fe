@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
     leadService,
     LEAD_STATUSES,
@@ -16,7 +17,7 @@ import {
     TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, MessageSquare, X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
@@ -29,7 +30,18 @@ const STATUS_STYLES: Record<LeadStatus, string> = {
     CLOSED: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
+// useSearchParams forces client-side rendering up to the nearest Suspense
+// boundary, and a prerendered route without one fails the production build.
 export default function ContactLeadsPage() {
+    return (
+        <Suspense fallback={null}>
+            <ContactLeadsView />
+        </Suspense>
+    );
+}
+
+function ContactLeadsView() {
+    const searchParams = useSearchParams();
     const [leads, setLeads] = useState<ContactLead[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -53,6 +65,14 @@ export default function ContactLeadsPage() {
     useEffect(() => {
         fetchLeads();
     }, []);
+
+    // Deep link from the dashboard: ?lead=<id> opens that lead's detail panel.
+    const leadIdParam = searchParams.get("lead");
+    useEffect(() => {
+        if (!leadIdParam || leads.length === 0) return;
+        const match = leads.find((l) => l.id === Number(leadIdParam));
+        if (match) setSelectedLead(match);
+    }, [leadIdParam, leads]);
 
     async function fetchLeads() {
         setIsLoading(true);

@@ -10,6 +10,7 @@ import {
 } from "@/services/global-settings-service";
 import { homePageService } from "@/services/home-page-service";
 import { optimizeImageFileToDataUrl } from "@/lib/client-image";
+import { siteUrl } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,6 @@ import {
   Save,
   Globe,
   Phone,
-  Mail,
   Share2,
   BarChart2,
   Upload,
@@ -369,7 +369,7 @@ export default function SettingsPage() {
             </p>
           </div>
           <a
-            href="http://localhost:3000"
+            href={siteUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"

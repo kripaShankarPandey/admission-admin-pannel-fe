@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { apiErrorMessage } from "@/lib/api-error";
 import { useRouter } from "next/navigation";
 import { CollegeForm } from "@/components/content-manager/college-form";
 import { collegeService, College } from "@/services/college-service";
@@ -58,10 +59,7 @@ export default function EditCollegePage({ params }: EditCollegePageProps) {
             router.push("/colleges");
         } catch (error) {
             console.error("Error saving college:", error);
-            const errMsg = error && typeof error === "object" && "response" in error
-                ? (error as any).response?.data?.message || "Failed to save college"
-                : "Failed to save college";
-            toast.error(Array.isArray(errMsg) ? errMsg.join(", ") : String(errMsg));
+            toast.error(apiErrorMessage(error, "Failed to save college"));
             setIsPublishing(false);
         }
     };

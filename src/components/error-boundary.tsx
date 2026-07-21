@@ -26,7 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
     public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         // Don't catch Next.js internal errors (redirects, not-found)
-        if ((error as any).digest?.startsWith("NEXT_REDIRECT") || (error as any).digest?.startsWith("NEXT_NOT_FOUND")) {
+        const digest = (error as { digest?: string }).digest;
+        if (digest?.startsWith("NEXT_REDIRECT") || digest?.startsWith("NEXT_NOT_FOUND")) {
             throw error;
         }
         console.error("Uncaught error:", error, errorInfo);

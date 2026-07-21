@@ -47,7 +47,6 @@ import { toast } from "sonner";
 import {
   BookOpen,
   Building2,
-  ClipboardList,
   Clock,
   ChevronDown,
   GraduationCap,
@@ -101,12 +100,7 @@ function isImageFile(file: File) {
 }
 
 type CourseLevel =
-  | "UG"
-  | "PG"
-  | "Diploma"
-  | "Doctorate"
-  | "Certificate"
-  | "Other";
+  "UG" | "PG" | "Diploma" | "Doctorate" | "Certificate" | "Other";
 
 interface CourseRow {
   discipline?: string;
@@ -1113,7 +1107,9 @@ function defaultRoundCutoff(value?: Partial<RoundCutoff>): RoundCutoff {
   };
 }
 
-function defaultCategoryCutoff(value?: Partial<CategoryCutoff>): CategoryCutoff {
+function defaultCategoryCutoff(
+  value?: Partial<CategoryCutoff>,
+): CategoryCutoff {
   return {
     open: readString(value?.open),
     ews: readString(value?.ews),
@@ -1482,23 +1478,6 @@ function flattenDisciplineSections(
   );
 }
 
-function roundCutoffFields(
-  prefix:
-    | "cutoff_state"
-    | "cutoff_all_india"
-    | "cutoff_minority"
-    | "cutoff_nri",
-) {
-  return [
-    { label: "R-1", name: `${prefix}.r1` as const },
-    { label: "R-2", name: `${prefix}.r2` as const },
-    { label: "R-3", name: `${prefix}.r3` as const },
-    { label: "R-4", name: `${prefix}.r4` as const },
-    { label: "R-5", name: `${prefix}.r5` as const },
-    { label: "R-Final", name: `${prefix}.r_final` as const },
-  ];
-}
-
 function courseRoundFields(prefix: string) {
   return [
     { label: "R-1", name: `${prefix}.r1` },
@@ -1508,6 +1487,75 @@ function courseRoundFields(prefix: string) {
     { label: "R-5", name: `${prefix}.r5` },
     { label: "R-Final", name: `${prefix}.r_final` },
   ];
+}
+
+function CutoffBlock({
+  dot,
+  label,
+  enabled,
+  onEnable,
+  onDisable,
+  fields,
+  register,
+}: {
+  dot: string;
+  label: string;
+  enabled: boolean;
+  onEnable: () => void;
+  onDisable: () => void;
+  fields: { label: string; name: string }[];
+  register: UseFormRegister<CollegeFormValues>;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            {label}
+          </span>
+        </div>
+        <div className="flex h-5 overflow-hidden rounded border border-border/50">
+          <button
+            type="button"
+            onClick={onDisable}
+            className={cn(
+              "px-2.5 text-[9px] font-bold uppercase transition-colors",
+              !enabled
+                ? "bg-red-500/10 text-red-500"
+                : "text-muted-foreground hover:bg-muted/40",
+            )}
+          >
+            Off
+          </button>
+          <div className="w-px bg-border/50" />
+          <button
+            type="button"
+            onClick={onEnable}
+            className={cn(
+              "px-2.5 text-[9px] font-bold uppercase transition-colors",
+              enabled
+                ? "bg-emerald-500/10 text-emerald-600"
+                : "text-muted-foreground hover:bg-muted/40",
+            )}
+          >
+            On
+          </button>
+        </div>
+      </div>
+      <div className="flex gap-1">
+        {fields.map((field) => (
+          <Input
+            key={field.name}
+            {...register(field.name as never)}
+            placeholder={field.label}
+            disabled={!enabled}
+            className="h-8 min-w-0 flex-1 rounded border-border/60 bg-white px-2 text-center text-xs shadow-none placeholder:text-[10px]"
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function CourseCutoffSection({
@@ -1619,84 +1667,15 @@ function CourseCutoffSection({
     { label: "PH-G", name: `${coursePath}.government_college_aiq_cutoff.ur` },
   ];
 
-  function CutoffBlock({
-    dot,
-    label,
-    enabled,
-    onEnable,
-    onDisable,
-    fields,
-  }: {
-    dot: string;
-    label: string;
-    enabled: boolean;
-    onEnable: () => void;
-    onDisable: () => void;
-    fields: { label: string; name: string }[];
-  }) {
-    return (
-      <div className="space-y-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-              {label}
-            </span>
-          </div>
-          <div className="flex h-5 overflow-hidden rounded border border-border/50">
-            <button
-              type="button"
-              onClick={onDisable}
-              className={cn(
-                "px-2.5 text-[9px] font-bold uppercase transition-colors",
-                !enabled
-                  ? "bg-red-500/10 text-red-500"
-                  : "text-muted-foreground hover:bg-muted/40",
-              )}
-            >
-              Off
-            </button>
-            <div className="w-px bg-border/50" />
-            <button
-              type="button"
-              onClick={onEnable}
-              className={cn(
-                "px-2.5 text-[9px] font-bold uppercase transition-colors",
-                enabled
-                  ? "bg-emerald-500/10 text-emerald-600"
-                  : "text-muted-foreground hover:bg-muted/40",
-              )}
-            >
-              On
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-1">
-          {fields.map((field) => (
-            <Input
-              key={field.name}
-              {...register(field.name as never)}
-              placeholder={field.label}
-              disabled={!enabled}
-              className="h-8 min-w-0 flex-1 rounded border-border/60 bg-white px-2 text-center text-xs shadow-none placeholder:text-[10px]"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="mt-3 space-y-3 rounded-lg border border-border/40 bg-muted/10 p-3">
       <CutoffBlock
+        register={register}
         dot="bg-blue-500"
         label="Cut off State Govt. Counselling"
         enabled={stateEnabled}
         onEnable={() =>
-          setValue(
-            `${coursePath}.cutoff_state_enabled` as never,
-            true as never,
-          )
+          setValue(`${coursePath}.cutoff_state_enabled` as never, true as never)
         }
         onDisable={() =>
           setValue(
@@ -1710,6 +1689,7 @@ function CourseCutoffSection({
         <Fragment key={section.key}>
           {section.key === "all_india" && (
             <CutoffBlock
+              register={register}
               dot="bg-teal-500"
               label="Cutoff All India MCC Counselling (Deemed)"
               enabled={deemedEnabled}
@@ -1729,6 +1709,7 @@ function CourseCutoffSection({
             />
           )}
           <CutoffBlock
+            register={register}
             dot={section.color}
             label={section.label}
             enabled={section.enabled}
@@ -1743,6 +1724,7 @@ function CourseCutoffSection({
         </Fragment>
       ))}
       <CutoffBlock
+        register={register}
         dot="bg-fuchsia-500"
         label="NRI Cut Off"
         enabled={govtStateEnabled}
@@ -1761,6 +1743,7 @@ function CourseCutoffSection({
         fields={govtStateFields}
       />
       <CutoffBlock
+        register={register}
         dot="bg-rose-500"
         label="State Cutoff Girls"
         enabled={aiqEnabled}
@@ -2088,10 +2071,11 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
     control: form.control,
     name: "gallery",
   });
-  const specialFeaturesValue = (useWatch({
-    control: form.control,
-    name: "special_features",
-  }) as string[]) || [];
+  const specialFeaturesValue =
+    (useWatch({
+      control: form.control,
+      name: "special_features",
+    }) as string[]) || [];
   const approvalValue = useWatch({ control: form.control, name: "approval" });
   const statusValue = useWatch({ control: form.control, name: "status" });
   const managementTypeValue = useWatch({

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { userService, type User, AdmRole } from "@/services/user-service";
+import { apiErrorMessage } from "@/lib/api-error";
+import {
+  userService,
+  type User,
+  type UpdateUserPayload,
+  AdmRole,
+} from "@/services/user-service";
 import {
   Table,
   TableBody,
@@ -15,7 +21,6 @@ import {
   Trash2,
   ShieldCheck,
   User as UserIcon,
-  Plus,
   Edit2,
   Lock,
   Mail,
@@ -36,7 +41,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -166,7 +170,7 @@ export default function AdminUsersPage() {
         });
         toast.success(`User "${username}" created successfully.`);
       } else {
-        const payload: any = {
+        const payload: UpdateUserPayload = {
           email,
           username,
           role,
@@ -180,10 +184,10 @@ export default function AdminUsersPage() {
       }
       setIsDialogOpen(false);
       fetchUsers();
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
       toast.error(
-        error.response?.data?.message || "An error occurred while saving user settings."
+        apiErrorMessage(error, "An error occurred while saving user settings.")
       );
     } finally {
       setIsSaving(false);

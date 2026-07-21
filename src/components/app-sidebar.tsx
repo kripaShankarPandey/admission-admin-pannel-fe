@@ -12,7 +12,6 @@ import {
   GraduationCap,
   Headset,
   HelpCircle,
-  Home,
   Layers,
   LayoutDashboard,
   LogOut,
