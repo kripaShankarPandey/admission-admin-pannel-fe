@@ -768,7 +768,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                               alt="Banner preview"
                               className="w-full h-full object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-surface">
                               <Input
                                 type="file"
                                 accept="image/*"
@@ -1350,7 +1350,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
                       <div
-                        className={`h-full rounded-full transition-all ${(metaTitleWatch?.length ?? 0) > 60 ? "bg-red-500" : (metaTitleWatch?.length ?? 0) >= 50 ? "bg-green-500" : "bg-amber-400"}`}
+                        className={`h-full rounded-full transition-surface ${(metaTitleWatch?.length ?? 0) > 60 ? "bg-red-500" : (metaTitleWatch?.length ?? 0) >= 50 ? "bg-green-500" : "bg-amber-400"}`}
                         style={{
                           width: `${Math.min(((metaTitleWatch?.length ?? 0) / 60) * 100, 100)}%`,
                         }}
@@ -1378,7 +1378,7 @@ export function SubCategoryForm({ courseId }: SubCategoryFormProps) {
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
                       <div
-                        className={`h-full rounded-full transition-all ${(metaDescriptionWatch?.length ?? 0) > 160 ? "bg-red-500" : (metaDescriptionWatch?.length ?? 0) >= 120 ? "bg-green-500" : "bg-amber-400"}`}
+                        className={`h-full rounded-full transition-surface ${(metaDescriptionWatch?.length ?? 0) > 160 ? "bg-red-500" : (metaDescriptionWatch?.length ?? 0) >= 120 ? "bg-green-500" : "bg-amber-400"}`}
                         style={{
                           width: `${Math.min(((metaDescriptionWatch?.length ?? 0) / 160) * 100, 100)}%`,
                         }}

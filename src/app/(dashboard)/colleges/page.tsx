@@ -40,6 +40,7 @@ import {
   Edit,
   Eye,
   Trash2,
+  Copy,
   Upload,
   GraduationCap,
   BookOpen,
@@ -198,7 +199,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5",
+        "flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xs transition-surface duration-200 hover:shadow-md hover:-translate-y-0.5",
         bgCls,
       )}
     >
@@ -363,6 +364,40 @@ export default function CollegesPage() {
       toast.error(getApiErrorMessage(error));
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  /**
+   * Clones a college into a fresh draft. The college form has ~80 fields, so
+   * starting from a similar college beats re-entering all of them. The copy is
+   * always a draft — publishing it is a deliberate act.
+   */
+  const handleDuplicate = async (college: College) => {
+    if (!confirm(`Duplicate "${college.college_name}" as a new draft?`)) return;
+
+    try {
+      const full = await collegeService.getOne(college.id);
+      const {
+        id: _id,
+        createdAt: _createdAt,
+        updatedAt: _updatedAt,
+        publishedAt: _publishedAt,
+        slug: _slug,
+        ...rest
+      } = full as College & Record<string, unknown>;
+
+      const created = await collegeService.create({
+        ...rest,
+        college_name: `${full.college_name} (copy)`,
+        // Slug omitted so the API derives a unique one from the new name;
+        // publishedAt omitted so the copy lands as a draft.
+      } as Partial<College>);
+
+      toast.success("Duplicated as a draft.");
+      router.push(`/colleges/${created.slug || created.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to duplicate the college.");
     }
   };
 
@@ -563,7 +598,7 @@ export default function CollegesPage() {
               setPage(1);
             }}
             className={cn(
-              "px-3 py-1 rounded-md text-xs font-semibold transition-all duration-150",
+              "px-3 py-1 rounded-md text-xs font-semibold transition-surface duration-150",
               selectedFeatured === v
                 ? "bg-foreground text-background shadow-xs"
                 : "text-muted-foreground hover:text-foreground",
@@ -964,6 +999,15 @@ export default function CollegesPage() {
                         title="Edit"
                       >
                         <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => void handleDuplicate(college)}
+                        title="Duplicate as draft"
+                      >
+                        <Copy className="h-3.5 w-3.5 text-muted-foreground" />
                       </Button>
                       <Button
                         variant="ghost"

@@ -11,11 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { Badge } from "@/components/ui/badge";
 import { TableStateRow } from "@/components/content-manager/table-state-row";
+import { Modal } from "@/components/ui/modal";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -68,70 +69,107 @@ export default function UsersPage() {
 
   return (
     <>
-    {selectedUser && (
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-foreground">User Details</h2>
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="p-1 hover:bg-muted rounded-lg transition-colors"
-            >
-              <X className="h-5 w-5 text-muted-foreground" />
-            </button>
-          </div>
+      {selectedUser && (
+        <Modal
+          title="User Details"
+          onClose={() => setSelectedUser(null)}
+          size="sm"
+        >
           <div className="px-6 py-5 space-y-4">
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">ID</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                ID
+              </label>
               <p className="text-sm text-foreground">{selectedUser.id}</p>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Name</label>
-              <p className="text-sm text-foreground">{selectedUser.name || '—'}</p>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Name
+              </label>
+              <p className="text-sm text-foreground">
+                {selectedUser.name || "—"}
+              </p>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Username</label>
-              <p className="text-sm text-foreground">{selectedUser.username || '—'}</p>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Username
+              </label>
+              <p className="text-sm text-foreground">
+                {selectedUser.username || "—"}
+              </p>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Email</label>
-              <a href={`mailto:${selectedUser.email}`} className="text-sm text-primary hover:underline">{selectedUser.email}</a>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Email
+              </label>
+              <a
+                href={`mailto:${selectedUser.email}`}
+                className="text-sm text-primary hover:underline"
+              >
+                {selectedUser.email}
+              </a>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Phone</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Phone
+              </label>
               {selectedUser.phone ? (
-                <a href={`tel:${selectedUser.phone}`} className="text-sm text-primary hover:underline">{selectedUser.phone}</a>
+                <a
+                  href={`tel:${selectedUser.phone}`}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {selectedUser.phone}
+                </a>
               ) : (
                 <p className="text-sm text-foreground">—</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">City</label>
-                <p className="text-sm text-foreground">{selectedUser.city || '—'}</p>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  City
+                </label>
+                <p className="text-sm text-foreground">
+                  {selectedUser.city || "—"}
+                </p>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">State</label>
-                <p className="text-sm text-foreground">{selectedUser.state || '—'}</p>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  State
+                </label>
+                <p className="text-sm text-foreground">
+                  {selectedUser.state || "—"}
+                </p>
               </div>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Status</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Status
+              </label>
               <div>
                 {selectedUser.confirmed ? (
                   <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px] font-bold uppercase">
                     Confirmed
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] font-bold uppercase">
+                  <Badge
+                    variant="outline"
+                    className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-[10px] font-bold uppercase"
+                  >
                     Pending
                   </Badge>
                 )}
               </div>
             </div>
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">Registered</label>
-              <p className="text-sm text-foreground">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : '—'}</p>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                Registered
+              </label>
+              <p className="text-sm text-foreground">
+                {selectedUser.createdAt
+                  ? new Date(selectedUser.createdAt).toLocaleString()
+                  : "—"}
+              </p>
             </div>
             <div className="pt-4 border-t border-border flex gap-2">
               <Button
@@ -153,111 +191,118 @@ export default function UsersPage() {
               </Button>
             </div>
           </div>
-        </div>
-      </div>
-    )}
-    <ListingLayout
-      title="Website Users"
-      description="View and manage standard registered user accounts on the website."
-      count={filteredUsers.length}
-      onSearchChange={setSearch}
-      searchPlaceholder="Search by name, email, phone, city or state..."
-    >
-      <Table>
-        <TableHeader className="bg-card">
-          <TableRow className="hover:bg-transparent border-b border-border/50">
-            <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              ID
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Username
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Email
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Phone
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              City
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              State
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Confirmed
-            </TableHead>
-            <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Registered Date
-            </TableHead>
-            <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
-              Actions
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableStateRow colSpan={9} isLoading emptyLabel="" />
-          ) : filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <TableRow
-                key={user.id}
-                className="group hover:bg-muted/50 border-b border-border/50 cursor-pointer"
-                onClick={() => setSelectedUser(user)}
-              >
-                <TableCell className="text-muted-foreground font-medium text-[13px]">
-                  #{user.id}
-                </TableCell>
-                <TableCell className="font-semibold text-foreground text-[13px]">
-                  {user?.username || "Unknown"}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-[13px]">
-                  {user?.email || "N/A"}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-[13px]">
-                  {user?.phone || "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-[13px]">
-                  {user?.city || "—"}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-[13px]">
-                  {user?.state || "—"}
-                </TableCell>
-                <TableCell>
-                  {user?.confirmed ? (
-                    <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
-                      Confirmed
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2"
-                    >
-                      Pending
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-[13px]">
-                  {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
-                </TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleDelete(user.id)}
+        </Modal>
+      )}
+      <ListingLayout
+        title="Website Users"
+        description="View and manage standard registered user accounts on the website."
+        count={filteredUsers.length}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name, email, phone, city or state..."
+      >
+        <Table>
+          <TableHeader className="bg-card">
+            <TableRow className="hover:bg-transparent border-b border-border/50">
+              <TableHead className="w-[80px] font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                ID
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Username
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Email
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Phone
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                City
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                State
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Confirmed
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Registered Date
+              </TableHead>
+              <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableStateRow colSpan={9} isLoading emptyLabel="" />
+            ) : filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <TableRow
+                  key={user.id}
+                  className="group hover:bg-muted/50 border-b border-border/50 cursor-pointer"
+                  onClick={() => setSelectedUser(user)}
+                >
+                  <TableCell className="text-muted-foreground font-medium text-[13px]">
+                    #{user.id}
+                  </TableCell>
+                  <TableCell className="font-semibold text-foreground text-[13px]">
+                    {user?.username || "Unknown"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {user?.email || "N/A"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {user?.phone || "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {user?.city || "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {user?.state || "—"}
+                  </TableCell>
+                  <TableCell>
+                    {user?.confirmed ? (
+                      <Badge className="bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2">
+                        Confirmed
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 shadow-none text-[10px] font-bold uppercase py-0 px-2"
+                      >
+                        Pending
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableStateRow colSpan={9} emptyLabel="No registered users found." />
-          )}
-        </TableBody>
-      </Table>
-    </ListingLayout>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableStateRow
+                colSpan={9}
+                emptyLabel="No registered users found."
+              />
+            )}
+          </TableBody>
+        </Table>
+      </ListingLayout>
     </>
   );
 }

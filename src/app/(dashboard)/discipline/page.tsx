@@ -432,7 +432,7 @@ export default function CategoriesPage() {
                       <div className="space-y-2">
                         <div
                           onClick={() => iconInputRef.current?.click()}
-                          className="w-full h-28 bg-muted/30 rounded-xl border-2 border-dashed border-border/50 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                          className="w-full h-28 bg-muted/30 rounded-xl border-2 border-dashed border-border/50 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-surface group"
                         >
                           {iconPreview ? (
                             <>

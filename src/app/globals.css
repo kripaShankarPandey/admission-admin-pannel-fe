@@ -236,3 +236,113 @@
   border-radius: 0.15em;
   padding: 0.1em 0.2em;
 }
+/* ─── Motion system ──────────────────────────────────────────────────────────
+   One place for the timings the panel uses, so transitions feel like one
+   product rather than per-component guesses. Durations are short on purpose:
+   an admin panel is a tool, and waiting for an animation is waiting.        */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 260ms;
+}
+
+/* Page/section entrance. Applied to route content so navigation has a beat
+   instead of snapping. */
+@keyframes admin-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* `backwards`, not `both`. `both` also keeps the final keyframe applied after
+   the animation ends, so the element stays permanently transform-animated — and
+   a transformed element becomes the containing block for its `position: fixed`
+   descendants. Every modal and overlay rendered inside a page was therefore
+   centring itself against the content box instead of the viewport, with the
+   backdrop stopping short of the top bar. `backwards` gives the same entrance
+   (it only applies the from-state before the animation starts) and leaves no
+   transform behind. */
+.animate-page-in {
+  animation: admin-fade-up var(--dur-slow) var(--ease-out) backwards;
+}
+
+/* Rows and cards: transition only the properties that actually change, so the
+   browser can keep them off the main thread. `transition: all` would also
+   animate layout properties and cause jank on long tables. */
+.transition-surface {
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+
+/* Dialogs and drawers. */
+@keyframes admin-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-dialog-in {
+  animation: admin-scale-in var(--dur-base) var(--ease-out) both;
+}
+
+/* Skeletons: a slow sweep reads as "loading", a fast one reads as broken. */
+@keyframes admin-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: hsl(var(--muted));
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--foreground) / 0.06),
+    transparent
+  );
+  animation: admin-shimmer 1.6s infinite;
+}
+
+/* Accessibility: honour the OS "reduce motion" setting. Without this every
+   animation above plays for users who have explicitly asked for stillness —
+   which for some is a vestibular trigger, not a preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Smooth in-page anchor scrolling, but never when reduced motion is on (the
+   rule above resets it). */
+html {
+  scroll-behavior: smooth;
+}

@@ -13,6 +13,11 @@ import {
   Headset,
   HelpCircle,
   Layers,
+  SlidersHorizontal,
+  Sliders,
+  KeyRound,
+  History,
+  Image as ImageIcon,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -82,7 +87,10 @@ const navSections: NavSection[] = [
     items: [
       { title: "Blog", icon: FileText, url: "/blogs", permission: "blogs" },
       { title: "Blog Categories", icon: Tag, url: "/blog-categories", permission: "blogs" },
+      { title: "Media Library", icon: ImageIcon, url: "/media", permission: "media" },
       { title: "College", icon: GraduationCap, url: "/colleges", permission: "colleges" },
+      { title: "Cutoffs", icon: SlidersHorizontal, url: "/cutoffs", permission: "cutoffs" },
+      { title: "Cutoff Types", icon: Sliders, url: "/cutoffs/types", permission: "cutoffs" },
       { title: "City", icon: MapPin, url: "/cities", permission: "cities" },
       { title: "Discipline", icon: Layers, url: "/discipline", permission: "courses" },
       { title: "Courses", icon: Layers, url: "/courses", permission: "courses" },
@@ -117,6 +125,8 @@ const navSections: NavSection[] = [
     items: [
       { title: "Global Settings", icon: Settings, url: "/settings", permission: "settings" },
       { title: "Admin Users", icon: ShieldCheck, url: "/settings/admin-users" },
+      { title: "Login & OTP", icon: KeyRound, url: "/settings/auth-providers", permission: "auth-providers" },
+      { title: "Activity Log", icon: History, url: "/settings/activity", permission: "activity-log" },
     ],
   },
 ];
@@ -238,7 +248,7 @@ export function AppSidebar() {
                         tooltip={item.title}
                         data-active={isActive ? "true" : "false"}
                         className={cn(
-                          "relative h-10 rounded-lg px-3 text-[13px] font-medium transition-all duration-200",
+                          "relative h-10 rounded-lg px-3 text-[13px] font-medium transition-surface duration-200",
                           "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground",
                           "group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:px-0",
                           isActive &&
@@ -273,7 +283,7 @@ export function AppSidebar() {
             render={
               <SidebarMenuButton
                 size="lg"
-                className="h-auto w-full rounded-xl border border-sidebar-border/45 bg-sidebar-accent/25 p-2.5 transition-all hover:bg-sidebar-accent/60 data-[state=open]:bg-sidebar-accent"
+                className="h-auto w-full rounded-xl border border-sidebar-border/45 bg-sidebar-accent/25 p-2.5 transition-surface hover:bg-sidebar-accent/60 data-[state=open]:bg-sidebar-accent"
               />
             }
           >

@@ -13,6 +13,9 @@ export interface ContactLead {
   courseInterest?: string | null;
   preferredTime?: string | null;
   status?: LeadStatus;
+  /** Workflow fields — see LeadWorkflowPanel. */
+  assigneeEmail?: string | null;
+  followUpAt?: string | null;
   createdAt: string;
 }
 
@@ -30,6 +33,8 @@ export interface CounselorLead {
   counselorId?: number | null;
   counselorName?: string | null;
   status?: LeadStatus;
+  assigneeEmail?: string | null;
+  followUpAt?: string | null;
   createdAt: string;
 }
 

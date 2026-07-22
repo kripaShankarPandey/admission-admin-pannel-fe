@@ -57,6 +57,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 const AVAILABLE_PERMISSIONS = [
   { id: "blogs", label: "Blogs & Categories", description: "Manage articles and categories" },
   { id: "colleges", label: "Colleges", description: "Add, edit, or delete college details" },
+  { id: "cutoffs", label: "Cutoff Types", description: "Define the cutoff blocks used by college courses" },
+  { id: "auth-providers", label: "Login & OTP Providers", description: "Manage Google and SMS OTP credentials" },
+  { id: "activity-log", label: "Activity Log", description: "See who changed what across the panel" },
+  { id: "media", label: "Media Library", description: "Browse and delete uploaded files" },
   { id: "cities", label: "Cities", description: "Manage educational city tags" },
   { id: "courses", label: "Courses & Streams", description: "Manage academic disciplines and courses" },
   { id: "counselors", label: "Counselors", description: "Manage counselor listings" },
@@ -549,14 +553,14 @@ export default function AdminUsersPage() {
                           <div
                             key={perm.id}
                             onClick={() => handlePermissionToggle(perm.id)}
-                            className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer select-none ${
+                            className={`flex items-start gap-3 p-3 rounded-lg border transition-surface cursor-pointer select-none ${
                               isChecked
                                 ? "border-primary bg-primary/5 text-primary shadow-2xs"
                                 : "border-border/60 hover:bg-muted bg-background text-slate-800"
                             }`}
                           >
                             <div
-                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-all ${
+                              className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-surface ${
                                 isChecked
                                   ? "border-primary bg-primary text-primary-foreground"
                                   : "border-muted-foreground/35 bg-background"

@@ -23,6 +23,7 @@ import {
   estimateJsonPayloadSize,
   optimizeImageFileToDataUrl,
 } from "@/lib/client-image";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 export type BlogEditorValues = {
   title: string;
@@ -35,6 +36,8 @@ export type BlogEditorValues = {
   keywords: string;
   categoryId: string;
   published: boolean;
+  /** ISO string; when in the future the post is scheduled, not live. */
+  publishAt: string;
 };
 
 export type BlogEditorPayload = {
@@ -69,6 +72,9 @@ const getDefaultValues = (initialData?: Blog | null): BlogEditorValues => ({
   keywords: initialData?.keywords || "",
   categoryId: initialData?.categoryId ? String(initialData.categoryId) : "",
   published: Boolean(initialData?.publishedAt),
+  publishAt: initialData?.publishedAt
+    ? new Date(initialData.publishedAt).toISOString().slice(0, 16)
+    : "",
 });
 
 export function BlogEditor({
@@ -91,10 +97,12 @@ export function BlogEditor({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm<BlogEditorValues>({
     defaultValues: getDefaultValues(initialData),
   });
+
+  useUnsavedChanges(isDirty);
 
   const selectedCategoryId = watch("categoryId");
 
@@ -196,7 +204,13 @@ export function BlogEditor({
       meta_description: data.meta_description || undefined,
       keywords: data.keywords || undefined,
       categoryId: data.categoryId ? Number(data.categoryId) : undefined,
-      publishedAt: data.published ? new Date().toISOString() : undefined,
+      // A chosen date wins over "now": a future one schedules the post, which
+      // the API hides from the public site until it arrives.
+      publishedAt: data.published
+        ? data.publishAt
+          ? new Date(data.publishAt).toISOString()
+          : new Date().toISOString()
+        : undefined,
     };
 
     const payloadSize = estimateJsonPayloadSize(payload);
@@ -346,6 +360,32 @@ export function BlogEditor({
                   )}
                 />
               </div>
+
+              {watch("published") && (
+                <div className="mt-3 border-t border-border/60 pt-3">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Go live at
+                  </Label>
+                  <Controller
+                    control={control}
+                    name="publishAt"
+                    render={({ field }) => (
+                      <input
+                        type="datetime-local"
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                    )}
+                  />
+                  <p className="mt-1.5 text-[10px] text-muted-foreground">
+                    {watch("publishAt") &&
+                    new Date(watch("publishAt")) > new Date()
+                      ? "Scheduled — hidden from the site until this time."
+                      : "Leave empty to publish immediately."}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -457,7 +497,7 @@ export function BlogEditor({
 
             <div
               onClick={() => bannerInputRef.current?.click()}
-              className="w-full aspect-[16/9] bg-muted/30 rounded-xl border-2 border-dashed border-border/50 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all group"
+              className="w-full aspect-[16/9] bg-muted/30 rounded-xl border-2 border-dashed border-border/50 overflow-hidden flex items-center justify-center relative cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-surface group"
             >
               {bannerPreview ? (
                 <>

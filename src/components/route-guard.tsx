@@ -7,6 +7,7 @@ function getPathPermission(pathname: string): string | null {
   if (pathname === '/' || pathname === '/login') return null;
   if (pathname.startsWith('/blogs') || pathname.startsWith('/blog-categories')) return 'blogs';
   if (pathname.startsWith('/colleges')) return 'colleges';
+  if (pathname.startsWith('/cutoffs')) return 'cutoffs';
   if (pathname.startsWith('/cities')) return 'cities';
   if (pathname.startsWith('/discipline') || pathname.startsWith('/courses')) return 'courses';
   if (pathname.startsWith('/contact-leads')) return 'contact-leads';
@@ -22,6 +23,9 @@ function getPathPermission(pathname: string): string | null {
   if (pathname.startsWith('/faqs')) return 'faqs';
   if (pathname.startsWith('/home-settings/seo-content')) return 'home-page';
   if (pathname.startsWith('/settings/admin-users')) return 'users_management'; // strictly super_admin
+  if (pathname.startsWith('/settings/auth-providers')) return 'auth-providers';
+  if (pathname.startsWith('/settings/activity')) return 'activity-log';
+  if (pathname.startsWith('/media')) return 'media';
   if (pathname.startsWith('/settings')) return 'settings';
   if (pathname.startsWith('/users')) return 'website-users'; // website users list
   return null;
@@ -38,8 +42,8 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const [, startTransition] = useTransition();
 
   // localStorage is unavailable while server-rendering, so this check cannot
-  // move into render without causing a hydration mismatch.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // move into render without causing a hydration mismatch — hence the
+  // set-state-in-effect exemptions on the two approvals below.
   useEffect(() => {
     const storedUser = localStorage.getItem("admin_user");
     if (!storedUser) {
@@ -55,6 +59,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
         permissions?: string[];
       };
       if (user.role === "super_admin") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAuthorizedPath(pathname);
         return;
       }
@@ -77,6 +82,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
             return;
           }
         }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setAuthorizedPath(pathname);
         return;
       }

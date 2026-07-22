@@ -42,6 +42,17 @@ export function ListingLayout({
 }: ListingLayoutProps) {
     const [isFilterOpen, setIsFilterOpen] = React.useState(false);
     const [activeFilter, setActiveFilter] = React.useState<string>("");
+    // Escape closes the filter dropdown. Clicking the invisible backdrop
+    // already did; without this the keyboard had no way out of it.
+    React.useEffect(() => {
+        if (!isFilterOpen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setIsFilterOpen(false);
+        };
+        document.addEventListener("keydown", onKeyDown);
+        return () => document.removeEventListener("keydown", onKeyDown);
+    }, [isFilterOpen]);
+
     const showSearch = Boolean(onSearchChange);
     const showFilters = Boolean(onFilterChange || filterOptions?.length);
     const showToolbar = showSearch || showFilters || Boolean(actions);

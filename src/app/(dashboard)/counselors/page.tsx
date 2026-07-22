@@ -377,7 +377,7 @@ export default function CounselorsPage() {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    className="px-6 py-2.5 font-medium text-sm bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-all"
+                                    className="px-6 py-2.5 font-medium text-sm bg-primary hover:bg-primary/90 text-white shadow-md hover:shadow-lg transition-surface"
                                 >
                                     {editingCounselor ? "Save Changes" : "Create Counselor"}
                                 </Button>

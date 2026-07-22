@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type Control,
   useFieldArray,
@@ -10,6 +10,8 @@ import {
   type FieldErrors,
 } from "react-hook-form";
 import { College } from "@/services/college-service";
+import Link from "next/link";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { ClinicalExcilenceLab } from "@/data/ClinicalExcilenceLab";
 import { cityService, type City } from "@/services/city-service";
 import {
@@ -49,6 +51,8 @@ import {
   Building2,
   Clock,
   ChevronDown,
+  ArrowUpRight,
+  SlidersHorizontal,
   GraduationCap,
   Hospital,
   ImageIcon,
@@ -115,21 +119,6 @@ interface CourseRow {
   intake_total: CourseValueEntry[];
   fee: CourseValueEntry[];
   seats: CourseValueEntry[];
-  cutoff_enabled: boolean;
-  cutoff_state_enabled: boolean;
-  cutoff_all_india_enabled: boolean;
-  cutoff_minority_enabled: boolean;
-  cutoff_nri_enabled: boolean;
-  cutoff_state: CategoryCutoff;
-  cutoff_all_india: RoundCutoff;
-  cutoff_all_india_deemed_enabled: boolean;
-  cutoff_all_india_deemed: CategoryCutoff;
-  cutoff_minority: RoundCutoff;
-  cutoff_nri: RoundCutoff;
-  govt_state_cutoff_enabled: boolean;
-  govt_state_cutoff: GovtStateCutoff;
-  government_college_aiq_cutoff_enabled: boolean;
-  government_college_aiq_cutoff: GovtAiqCutoff;
 }
 
 interface CourseValueEntry {
@@ -140,42 +129,6 @@ interface CourseValueEntry {
 interface DisciplineSectionRow {
   discipline: string;
   courses: CourseRow[];
-}
-
-interface RoundCutoff {
-  r1: string;
-  r2: string;
-  r3: string;
-  r4: string;
-  r5: string;
-  r_final: string;
-}
-
-interface CategoryCutoff {
-  open: string;
-  ews: string;
-  obc: string;
-  sc: string;
-  st: string;
-  ph: string;
-}
-
-interface GovtStateCutoff {
-  urop: string;
-  ews: string;
-  obc: string;
-  sc: string;
-  st: string;
-  ur: string;
-}
-
-interface GovtAiqCutoff {
-  open: string;
-  ews: string;
-  obc: string;
-  sc: string;
-  st: string;
-  ur: string;
 }
 
 interface ClinicalExcilenceLabRow {
@@ -615,6 +568,7 @@ function DisciplineCoursesGroup({
   parsedDetails,
   disciplineOptions,
   inputCls,
+  collegeId,
 }: {
   control: Control<CollegeFormValues>;
   register: UseFormRegister<CollegeFormValues>;
@@ -628,6 +582,7 @@ function DisciplineCoursesGroup({
   parsedDetails: Record<number, Record<string, unknown>>;
   disciplineOptions: Array<{ label: string; value: string }>;
   inputCls: string;
+  collegeId?: number;
 }) {
   const sectionCourses = useFieldArray({
     control,
@@ -786,7 +741,7 @@ function DisciplineCoursesGroup({
           {sectionCourses.fields.map((field, courseIndex) => (
             <div
               key={field.id}
-              className="relative rounded-xl border border-border/60 bg-background p-5 shadow-xs transition-all duration-200 hover:border-border hover:shadow-md"
+              className="relative rounded-xl border border-border/60 bg-background p-5 shadow-xs transition-surface duration-200 hover:border-border hover:shadow-md"
             >
               <div className="mb-5 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
                 <div className="flex min-w-0 items-center gap-2">
@@ -1035,37 +990,16 @@ function DisciplineCoursesGroup({
               />
 
               <div className="mt-4 border-t border-border/40 pt-4">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setValue(
-                      `${coursePath(courseIndex)}.cutoff_enabled` as never,
-                      !watchedSectionCourses?.[courseIndex]
-                        ?.cutoff_enabled as never,
-                    )
+                <Link
+                  href={
+                    collegeId ? `/cutoffs?college=${collegeId}` : "/cutoffs"
                   }
-                  className="flex items-center gap-2 rounded-md border border-border/50 px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary transition-colors hover:text-primary/80"
                 >
-                  <ChevronDown
-                    className={cn(
-                      "h-3.5 w-3.5 transition-transform",
-                      watchedSectionCourses?.[courseIndex]?.cutoff_enabled &&
-                        "rotate-180",
-                    )}
-                  />
-                  {watchedSectionCourses?.[courseIndex]?.cutoff_enabled
-                    ? "Hide Cutoff"
-                    : "Add Cutoff"}
-                </button>
-
-                {watchedSectionCourses?.[courseIndex]?.cutoff_enabled && (
-                  <CourseCutoffSection
-                    control={control}
-                    register={register}
-                    setValue={setValue}
-                    coursePath={coursePath(courseIndex)}
-                  />
-                )}
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Cutoffs are managed in the Cutoff section
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           ))}
@@ -1096,54 +1030,6 @@ function DisciplineCoursesGroup({
   );
 }
 
-function defaultRoundCutoff(value?: Partial<RoundCutoff>): RoundCutoff {
-  return {
-    r1: readString(value?.r1),
-    r2: readString(value?.r2),
-    r3: readString(value?.r3),
-    r4: readString(value?.r4),
-    r5: readString(value?.r5),
-    r_final: readString(value?.r_final),
-  };
-}
-
-function defaultCategoryCutoff(
-  value?: Partial<CategoryCutoff>,
-): CategoryCutoff {
-  return {
-    open: readString(value?.open),
-    ews: readString(value?.ews),
-    obc: readString(value?.obc),
-    sc: readString(value?.sc),
-    st: readString(value?.st),
-    ph: readString(value?.ph),
-  };
-}
-
-function defaultGovtStateCutoff(
-  value?: Partial<GovtStateCutoff>,
-): GovtStateCutoff {
-  return {
-    urop: readString(value?.urop),
-    ews: readString(value?.ews),
-    obc: readString(value?.obc),
-    sc: readString(value?.sc),
-    st: readString(value?.st),
-    ur: readString(value?.ur),
-  };
-}
-
-function defaultGovtAiqCutoff(value?: Partial<GovtAiqCutoff>): GovtAiqCutoff {
-  return {
-    open: readString(value?.open),
-    ews: readString(value?.ews),
-    obc: readString(value?.obc),
-    sc: readString(value?.sc),
-    st: readString(value?.st),
-    ur: readString(value?.ur),
-  };
-}
-
 function createCourseValueEntry(
   value = "",
   currency = "INR",
@@ -1165,21 +1051,6 @@ function defaultCourseRow(discipline = ""): CourseRow {
     intake_total: [createCourseValueEntry()],
     fee: [createCourseValueEntry()],
     seats: [createCourseValueEntry()],
-    cutoff_enabled: false,
-    cutoff_state_enabled: true,
-    cutoff_all_india_enabled: true,
-    cutoff_minority_enabled: true,
-    cutoff_nri_enabled: true,
-    cutoff_state: defaultCategoryCutoff(),
-    cutoff_all_india: defaultRoundCutoff(),
-    cutoff_all_india_deemed_enabled: true,
-    cutoff_all_india_deemed: defaultCategoryCutoff(),
-    cutoff_minority: defaultRoundCutoff(),
-    cutoff_nri: defaultRoundCutoff(),
-    govt_state_cutoff_enabled: true,
-    govt_state_cutoff: defaultGovtStateCutoff(),
-    government_college_aiq_cutoff_enabled: true,
-    government_college_aiq_cutoff: defaultGovtAiqCutoff(),
   };
 }
 
@@ -1364,70 +1235,6 @@ function normalizeCourseRows(
       seats: Array.from({ length: entryCount }, (_, index) => {
         return seatsEntries[index] ?? createCourseValueEntry();
       }),
-      cutoff_enabled: readBoolean(
-        (record as { cutoff_enabled?: unknown }).cutoff_enabled,
-        false,
-      ),
-      cutoff_state_enabled: readBoolean(
-        (record as { cutoff_state_enabled?: unknown }).cutoff_state_enabled,
-        true,
-      ),
-      cutoff_all_india_enabled: readBoolean(
-        (record as { cutoff_all_india_enabled?: unknown })
-          .cutoff_all_india_enabled,
-        true,
-      ),
-      cutoff_minority_enabled: readBoolean(
-        (record as { cutoff_minority_enabled?: unknown })
-          .cutoff_minority_enabled,
-        true,
-      ),
-      cutoff_nri_enabled: readBoolean(
-        (record as { cutoff_nri_enabled?: unknown }).cutoff_nri_enabled,
-        true,
-      ),
-      cutoff_state: defaultCategoryCutoff(
-        (record as { cutoff_state?: unknown })
-          .cutoff_state as Partial<CategoryCutoff>,
-      ),
-      cutoff_all_india: defaultRoundCutoff(
-        (record as { cutoff_all_india?: unknown })
-          .cutoff_all_india as Partial<RoundCutoff>,
-      ),
-      cutoff_all_india_deemed_enabled: readBoolean(
-        (record as { cutoff_all_india_deemed_enabled?: unknown })
-          .cutoff_all_india_deemed_enabled,
-        true,
-      ),
-      cutoff_all_india_deemed: defaultCategoryCutoff(
-        (record as { cutoff_all_india_deemed?: unknown })
-          .cutoff_all_india_deemed as Partial<CategoryCutoff>,
-      ),
-      cutoff_minority: defaultRoundCutoff(
-        (record as { cutoff_minority?: unknown })
-          .cutoff_minority as Partial<RoundCutoff>,
-      ),
-      cutoff_nri: defaultRoundCutoff(
-        (record as { cutoff_nri?: unknown }).cutoff_nri as Partial<RoundCutoff>,
-      ),
-      govt_state_cutoff_enabled: readBoolean(
-        (record as { govt_state_cutoff_enabled?: unknown })
-          .govt_state_cutoff_enabled,
-        true,
-      ),
-      govt_state_cutoff: defaultGovtStateCutoff(
-        (record as { govt_state_cutoff?: unknown })
-          .govt_state_cutoff as Partial<GovtStateCutoff>,
-      ),
-      government_college_aiq_cutoff_enabled: readBoolean(
-        (record as { government_college_aiq_cutoff_enabled?: unknown })
-          .government_college_aiq_cutoff_enabled,
-        true,
-      ),
-      government_college_aiq_cutoff: defaultGovtAiqCutoff(
-        (record as { government_college_aiq_cutoff?: unknown })
-          .government_college_aiq_cutoff as Partial<GovtAiqCutoff>,
-      ),
     };
   });
 }
@@ -1475,293 +1282,6 @@ function flattenDisciplineSections(
       ...course,
       discipline: section.discipline,
     })),
-  );
-}
-
-function courseRoundFields(prefix: string) {
-  return [
-    { label: "R-1", name: `${prefix}.r1` },
-    { label: "R-2", name: `${prefix}.r2` },
-    { label: "R-3", name: `${prefix}.r3` },
-    { label: "R-4", name: `${prefix}.r4` },
-    { label: "R-5", name: `${prefix}.r5` },
-    { label: "R-Final", name: `${prefix}.r_final` },
-  ];
-}
-
-function CutoffBlock({
-  dot,
-  label,
-  enabled,
-  onEnable,
-  onDisable,
-  fields,
-  register,
-}: {
-  dot: string;
-  label: string;
-  enabled: boolean;
-  onEnable: () => void;
-  onDisable: () => void;
-  fields: { label: string; name: string }[];
-  register: UseFormRegister<CollegeFormValues>;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-            {label}
-          </span>
-        </div>
-        <div className="flex h-5 overflow-hidden rounded border border-border/50">
-          <button
-            type="button"
-            onClick={onDisable}
-            className={cn(
-              "px-2.5 text-[9px] font-bold uppercase transition-colors",
-              !enabled
-                ? "bg-red-500/10 text-red-500"
-                : "text-muted-foreground hover:bg-muted/40",
-            )}
-          >
-            Off
-          </button>
-          <div className="w-px bg-border/50" />
-          <button
-            type="button"
-            onClick={onEnable}
-            className={cn(
-              "px-2.5 text-[9px] font-bold uppercase transition-colors",
-              enabled
-                ? "bg-emerald-500/10 text-emerald-600"
-                : "text-muted-foreground hover:bg-muted/40",
-            )}
-          >
-            On
-          </button>
-        </div>
-      </div>
-      <div className="flex gap-1">
-        {fields.map((field) => (
-          <Input
-            key={field.name}
-            {...register(field.name as never)}
-            placeholder={field.label}
-            disabled={!enabled}
-            className="h-8 min-w-0 flex-1 rounded border-border/60 bg-white px-2 text-center text-xs shadow-none placeholder:text-[10px]"
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CourseCutoffSection({
-  control,
-  register,
-  setValue,
-  coursePath,
-}: {
-  control: Control<CollegeFormValues>;
-  register: UseFormRegister<CollegeFormValues>;
-  setValue: ReturnType<typeof useForm<CollegeFormValues>>["setValue"];
-  coursePath: string;
-}) {
-  const stateEnabled = useWatch({
-    control,
-    name: `${coursePath}.cutoff_state_enabled` as never,
-  }) as unknown as boolean;
-  const allIndiaEnabled = useWatch({
-    control,
-    name: `${coursePath}.cutoff_all_india_enabled` as never,
-  }) as unknown as boolean;
-  const minorityEnabled = useWatch({
-    control,
-    name: `${coursePath}.cutoff_minority_enabled` as never,
-  }) as unknown as boolean;
-  const nriEnabled = useWatch({
-    control,
-    name: `${coursePath}.cutoff_nri_enabled` as never,
-  }) as unknown as boolean;
-  const govtStateEnabled = useWatch({
-    control,
-    name: `${coursePath}.govt_state_cutoff_enabled` as never,
-  }) as unknown as boolean;
-  const aiqEnabled = useWatch({
-    control,
-    name: `${coursePath}.government_college_aiq_cutoff_enabled` as never,
-  }) as unknown as boolean;
-  const deemedEnabled = useWatch({
-    control,
-    name: `${coursePath}.cutoff_all_india_deemed_enabled` as never,
-  }) as unknown as boolean;
-
-  const stateCategoryFields = [
-    { label: "Open", name: `${coursePath}.cutoff_state.open` },
-    { label: "EWS", name: `${coursePath}.cutoff_state.ews` },
-    { label: "OBC", name: `${coursePath}.cutoff_state.obc` },
-    { label: "SC", name: `${coursePath}.cutoff_state.sc` },
-    { label: "ST", name: `${coursePath}.cutoff_state.st` },
-    { label: "PH", name: `${coursePath}.cutoff_state.ph` },
-  ];
-
-  const deemedCategoryFields = [
-    { label: "Open", name: `${coursePath}.cutoff_all_india_deemed.open` },
-    { label: "EWS", name: `${coursePath}.cutoff_all_india_deemed.ews` },
-    { label: "OBC", name: `${coursePath}.cutoff_all_india_deemed.obc` },
-    { label: "SC", name: `${coursePath}.cutoff_all_india_deemed.sc` },
-    { label: "ST", name: `${coursePath}.cutoff_all_india_deemed.st` },
-    { label: "PH", name: `${coursePath}.cutoff_all_india_deemed.ph` },
-  ];
-
-  const roundSections = [
-    {
-      key: "all_india",
-      label: "Cutoff All India MCC Counselling",
-      color: "bg-emerald-500",
-      enabledPath: `${coursePath}.cutoff_all_india_enabled`,
-      enabled: allIndiaEnabled,
-      prefix: `${coursePath}.cutoff_all_india`,
-    },
-    {
-      key: "minority",
-      label: "State PVT Cutoff",
-      color: "bg-amber-500",
-      enabledPath: `${coursePath}.cutoff_minority_enabled`,
-      enabled: minorityEnabled,
-      prefix: `${coursePath}.cutoff_minority`,
-    },
-    {
-      key: "nri",
-      label: "Cut Off Minority Quota",
-      color: "bg-violet-500",
-      enabledPath: `${coursePath}.cutoff_nri_enabled`,
-      enabled: nriEnabled,
-      prefix: `${coursePath}.cutoff_nri`,
-    },
-  ];
-
-  const govtStateFields = [
-    { label: "UROP", name: `${coursePath}.govt_state_cutoff.urop` },
-    { label: "EWS", name: `${coursePath}.govt_state_cutoff.ews` },
-    { label: "OBC", name: `${coursePath}.govt_state_cutoff.obc` },
-    { label: "SC", name: `${coursePath}.govt_state_cutoff.sc` },
-    { label: "ST", name: `${coursePath}.govt_state_cutoff.st` },
-    // { label: "UR", name: `${coursePath}.govt_state_cutoff.ur` },
-  ];
-
-  const aiqFields = [
-    {
-      label: "Open-G",
-      name: `${coursePath}.government_college_aiq_cutoff.open`,
-    },
-    {
-      label: "EWS-G",
-      name: `${coursePath}.government_college_aiq_cutoff.ews`,
-    },
-    { label: "OBC-G", name: `${coursePath}.government_college_aiq_cutoff.obc` },
-    { label: "SC-G", name: `${coursePath}.government_college_aiq_cutoff.sc` },
-    { label: "ST-G", name: `${coursePath}.government_college_aiq_cutoff.st` },
-    { label: "PH-G", name: `${coursePath}.government_college_aiq_cutoff.ur` },
-  ];
-
-  return (
-    <div className="mt-3 space-y-3 rounded-lg border border-border/40 bg-muted/10 p-3">
-      <CutoffBlock
-        register={register}
-        dot="bg-blue-500"
-        label="Cut off State Govt. Counselling"
-        enabled={stateEnabled}
-        onEnable={() =>
-          setValue(`${coursePath}.cutoff_state_enabled` as never, true as never)
-        }
-        onDisable={() =>
-          setValue(
-            `${coursePath}.cutoff_state_enabled` as never,
-            false as never,
-          )
-        }
-        fields={stateCategoryFields}
-      />
-      {roundSections.map((section) => (
-        <Fragment key={section.key}>
-          {section.key === "all_india" && (
-            <CutoffBlock
-              register={register}
-              dot="bg-teal-500"
-              label="Cutoff All India MCC Counselling (Deemed)"
-              enabled={deemedEnabled}
-              onEnable={() =>
-                setValue(
-                  `${coursePath}.cutoff_all_india_deemed_enabled` as never,
-                  true as never,
-                )
-              }
-              onDisable={() =>
-                setValue(
-                  `${coursePath}.cutoff_all_india_deemed_enabled` as never,
-                  false as never,
-                )
-              }
-              fields={deemedCategoryFields}
-            />
-          )}
-          <CutoffBlock
-            register={register}
-            dot={section.color}
-            label={section.label}
-            enabled={section.enabled}
-            onEnable={() =>
-              setValue(section.enabledPath as never, true as never)
-            }
-            onDisable={() =>
-              setValue(section.enabledPath as never, false as never)
-            }
-            fields={courseRoundFields(section.prefix)}
-          />
-        </Fragment>
-      ))}
-      <CutoffBlock
-        register={register}
-        dot="bg-fuchsia-500"
-        label="NRI Cut Off"
-        enabled={govtStateEnabled}
-        onEnable={() =>
-          setValue(
-            `${coursePath}.govt_state_cutoff_enabled` as never,
-            true as never,
-          )
-        }
-        onDisable={() =>
-          setValue(
-            `${coursePath}.govt_state_cutoff_enabled` as never,
-            false as never,
-          )
-        }
-        fields={govtStateFields}
-      />
-      <CutoffBlock
-        register={register}
-        dot="bg-rose-500"
-        label="State Cutoff Girls"
-        enabled={aiqEnabled}
-        onEnable={() =>
-          setValue(
-            `${coursePath}.government_college_aiq_cutoff_enabled` as never,
-            true as never,
-          )
-        }
-        onDisable={() =>
-          setValue(
-            `${coursePath}.government_college_aiq_cutoff_enabled` as never,
-            false as never,
-          )
-        }
-        fields={aiqFields}
-      />
-    </div>
   );
 }
 
@@ -2058,6 +1578,10 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
       form.reset(parsedDefaultValues);
     }
   }, [initialData, form, parsedDefaultValues]);
+
+  // This form is thousands of inputs long — a stray Back or tab close used to
+  // discard the lot without a word.
+  useUnsavedChanges(form.formState.isDirty);
   const watchedDisciplineSections = useWatch({
     control: form.control,
     name: "discipline_sections",
@@ -2828,6 +2352,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
                 parsedDetails={parsedDetails}
                 disciplineOptions={disciplineOptions}
                 inputCls={inputCls}
+                collegeId={initialData?.id}
               />
             ))}
 
@@ -3752,7 +3277,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
                 <div
-                  className={`h-full rounded-full transition-all ${
+                  className={`h-full rounded-full transition-surface ${
                     (metaTitleValue?.length ?? 0) > 60
                       ? "bg-red-500"
                       : (metaTitleValue?.length ?? 0) >= 50
@@ -3792,7 +3317,7 @@ export function CollegeForm({ initialData, onSave }: CollegeFormProps) {
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-border/50">
                 <div
-                  className={`h-full rounded-full transition-all ${
+                  className={`h-full rounded-full transition-surface ${
                     (metaDescriptionValue?.length ?? 0) > 160
                       ? "bg-red-500"
                       : (metaDescriptionValue?.length ?? 0) >= 120

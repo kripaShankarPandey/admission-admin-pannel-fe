@@ -36,6 +36,7 @@ import { latestNewsService } from "@/services/latest-news-service";
 import { userService } from "@/services/user-service";
 import { counselorService } from "@/services/counselor-service";
 import { cn } from "@/lib/utils";
+import { AnalyticsPanel } from "@/components/dashboard/analytics-panel";
 
 // ---------- Types ----------
 interface DashboardStats {
@@ -101,7 +102,7 @@ function StatCard({ title, value, icon: Icon, href, gradient, iconBg, iconColor,
       <div
         className={cn(
           "relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm",
-          "transition-all duration-300 hover:shadow-lg hover:border-border hover:-translate-y-0.5",
+          "transition-surface duration-300 hover:shadow-lg hover:border-border hover:-translate-y-0.5",
         )}
       >
         {/* Gradient accent */}
@@ -130,7 +131,7 @@ function StatCard({ title, value, icon: Icon, href, gradient, iconBg, iconColor,
         </div>
 
         {/* Arrow on hover */}
-        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-1 group-hover:translate-x-0">
+        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-surface duration-200 translate-x-1 group-hover:translate-x-0">
           <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
         </div>
       </div>
@@ -285,6 +286,9 @@ export default function DashboardPage() {
             ))}
       </div>
 
+      {/* ── Analytics ── */}
+      <AnalyticsPanel />
+
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -379,7 +383,7 @@ export default function DashboardPage() {
                 <Link
                   key={action.label}
                   href={action.href}
-                  className="flex items-center gap-3 rounded-xl p-3 transition-all duration-150 hover:bg-accent group border border-transparent hover:border-border/50"
+                  className="flex items-center gap-3 rounded-xl p-3 transition-surface duration-150 hover:bg-accent group border border-transparent hover:border-border/50"
                 >
                   <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0", action.color)}>
                     <action.icon className="h-4 w-4" />

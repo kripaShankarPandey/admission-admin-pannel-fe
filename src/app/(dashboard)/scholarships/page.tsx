@@ -15,10 +15,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, X } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { ListingLayout } from "@/components/content-manager/listing-layout";
 import { TableStateRow } from "@/components/content-manager/table-state-row";
+import { Modal } from "@/components/ui/modal";
 
 const INPUT =
   "w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/40 placeholder:text-muted-foreground/60";
@@ -123,94 +124,96 @@ export default function ScholarshipsPage() {
   return (
     <>
       {form && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-foreground">
-                {editing ? "Edit Scholarship" : "New Scholarship"}
-              </h2>
-              <button
-                onClick={() => setForm(null)}
-                className="p-1 hover:bg-muted rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </div>
-            <form onSubmit={handleSave} className="px-6 py-5 space-y-4">
-              <Field label="Scholarship Name *">
+        <Modal
+          title={editing ? "Edit Scholarship" : "New Scholarship"}
+          onClose={() => setForm(null)}
+          size="md"
+        >
+          <form onSubmit={handleSave} className="px-6 py-5 space-y-4">
+            <Field label="Scholarship Name *">
+              <input
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="NEET Merit Scholarship"
+                className={INPUT}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Value *">
                 <input
                   required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="NEET Merit Scholarship"
+                  value={form.value}
+                  onChange={(e) => setForm({ ...form, value: e.target.value })}
+                  placeholder="₹50,000 / year"
                   className={INPUT}
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Value *">
-                  <input
-                    required
-                    value={form.value}
-                    onChange={(e) => setForm({ ...form, value: e.target.value })}
-                    placeholder="₹50,000 / year"
-                    className={INPUT}
-                  />
-                </Field>
-                <Field label="Type *">
-                  <input
-                    required
-                    list="scholarship-types"
-                    value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    placeholder="Merit"
-                    className={INPUT}
-                  />
-                  <datalist id="scholarship-types">
-                    {TYPE_SUGGESTIONS.map((t) => (
-                      <option key={t} value={t} />
-                    ))}
-                  </datalist>
-                </Field>
-              </div>
-              <Field label="Eligibility *">
-                <textarea
+              <Field label="Type *">
+                <input
                   required
-                  value={form.eligibility}
-                  onChange={(e) => setForm({ ...form, eligibility: e.target.value })}
-                  placeholder="NEET rank under 1,000"
-                  rows={2}
+                  list="scholarship-types"
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  placeholder="Merit"
+                  className={INPUT}
+                />
+                <datalist id="scholarship-types">
+                  {TYPE_SUGGESTIONS.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
+              </Field>
+            </div>
+            <Field label="Eligibility *">
+              <textarea
+                required
+                value={form.eligibility}
+                onChange={(e) =>
+                  setForm({ ...form, eligibility: e.target.value })
+                }
+                placeholder="NEET rank under 1,000"
+                rows={2}
+                className={INPUT}
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Priority (higher = first)">
+                <input
+                  type="number"
+                  value={form.priority}
+                  onChange={(e) =>
+                    setForm({ ...form, priority: Number(e.target.value) })
+                  }
                   className={INPUT}
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Priority (higher = first)">
-                  <input
-                    type="number"
-                    value={form.priority}
-                    onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
-                    className={INPUT}
-                  />
-                </Field>
-                <Field label="Official URL">
-                  <input
-                    value={form.officialUrl}
-                    onChange={(e) => setForm({ ...form, officialUrl: e.target.value })}
-                    placeholder="https://…"
-                    className={INPUT}
-                  />
-                </Field>
-              </div>
-              <div className="pt-4 border-t border-border flex gap-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setForm(null)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={saving} className="flex-1">
-                  {saving ? "Saving..." : editing ? "Update" : "Create"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
+              <Field label="Official URL">
+                <input
+                  value={form.officialUrl}
+                  onChange={(e) =>
+                    setForm({ ...form, officialUrl: e.target.value })
+                  }
+                  placeholder="https://…"
+                  className={INPUT}
+                />
+              </Field>
+            </div>
+            <div className="pt-4 border-t border-border flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setForm(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving} className="flex-1">
+                {saving ? "Saving..." : editing ? "Update" : "Create"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
       )}
 
       <ListingLayout
@@ -225,12 +228,24 @@ export default function ScholarshipsPage() {
         <Table>
           <TableHeader className="bg-card">
             <TableRow className="hover:bg-transparent border-b border-border/50">
-              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Name</TableHead>
-              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Value</TableHead>
-              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Type</TableHead>
-              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Eligibility</TableHead>
-              <TableHead className="w-20 font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Priority</TableHead>
-              <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Actions</TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Name
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Value
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Type
+              </TableHead>
+              <TableHead className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Eligibility
+              </TableHead>
+              <TableHead className="w-20 font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Priority
+              </TableHead>
+              <TableHead className="text-right font-bold text-[11px] uppercase tracking-wider text-muted-foreground">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -243,12 +258,25 @@ export default function ScholarshipsPage() {
                   className="group hover:bg-muted/50 border-b border-border/50 cursor-pointer"
                   onClick={() => openEdit(item)}
                 >
-                  <TableCell className="font-semibold text-foreground text-[13px]">{item.name}</TableCell>
-                  <TableCell className="text-muted-foreground text-[13px]">{item.value}</TableCell>
-                  <TableCell className="text-muted-foreground text-[13px]">{item.type}</TableCell>
-                  <TableCell className="text-muted-foreground text-[13px] max-w-xs truncate">{item.eligibility}</TableCell>
-                  <TableCell className="text-muted-foreground text-[13px]">{item.priority ?? 0}</TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="font-semibold text-foreground text-[13px]">
+                    {item.name}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {item.value}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {item.type}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px] max-w-xs truncate">
+                    {item.eligibility}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-[13px]">
+                    {item.priority ?? 0}
+                  </TableCell>
+                  <TableCell
+                    className="text-right"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex justify-end gap-1">
                       <Button
                         variant="ghost"
@@ -271,7 +299,10 @@ export default function ScholarshipsPage() {
                 </TableRow>
               ))
             ) : (
-              <TableStateRow colSpan={6} emptyLabel="No scholarships yet. Add one to get started." />
+              <TableStateRow
+                colSpan={6}
+                emptyLabel="No scholarships yet. Add one to get started."
+              />
             )}
           </TableBody>
         </Table>
@@ -280,7 +311,13 @@ export default function ScholarshipsPage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
