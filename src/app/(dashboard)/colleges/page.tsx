@@ -73,63 +73,85 @@ import { cn } from "@/lib/utils";
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
 
+/**
+ * The in-app import guide. Mirrors the "How to use" sheet in the template so
+ * the rules are the same whether someone reads them here or in Excel.
+ */
+const IMPORT_STEPS = [
+  "Download the template. Sheet 1 is where the data goes, sheet 2 explains every column.",
+  "Row 2 is a filled-in example college. It is ignored on upload — overwrite it or delete it, either is fine.",
+  "One college per row. Keep the header row exactly as it is — order does not matter, and you can delete columns you are not using.",
+  "college_name is the only column always required. college_type, established_year, NIRF_rank and college_description are needed only when a row creates a college that does not exist yet.",
+  "A row whose college_name matches an existing college updates it — matching ignores case, spacing and punctuation.",
+  "A name that is close but not identical is rejected with a “Did you mean …?” suggestion rather than creating a near-duplicate. Fix the spelling, or fill slug to create it as a separate college deliberately.",
+  "Blank cells are ignored and never erase existing data — to change one field, send college_name plus that column.",
+  "Live URLs are never renamed on their own. Fill slug only when you mean to change one, or to force-create a similarly named college.",
+];
+
 const IMPORT_FIELD_GROUPS = [
   {
-    title: "Required columns",
+    title: "Always required",
+    items: ["college_name"],
+  },
+  {
+    title: "Required for new colleges only",
     items: [
-      "college_name",
-      "overview",
-      "nirf_rank",
-      "establish_year",
-      "mgmt_type",
+      "college_type",
+      "established_year",
+      "NIRF_rank",
+      "college_description",
     ],
   },
   {
-    title: "Simple text columns",
+    title: "Basics",
+    items: ["city", "state", "affiliated_with", "approval", "status"],
+  },
+  {
+    title: "Ranking",
+    items: ["naac", "nba", "college_rating"],
+  },
+  {
+    title: "Campus & hospital",
     items: [
-      "university_name",
-      "approval",
-      "status",
-      "state",
-      "city",
       "campus_area",
-      "accreditation",
-      "naac",
-      "nba",
-      "facilities_enabled",
-      "hospital_overview_enabled",
+      "hospital_bed",
+      "total_bed",
+      "general_ward_bed",
+      "critical_ward_bed",
+      "no_of_ot",
+      "average_ot",
+      "opd_running",
+      "clinical_rotation",
+      "medical_camping",
     ],
   },
   {
-    title: "Cutoff columns",
+    title: "Connectivity",
+    items: ["airport", "railway_station", "bus_stand"],
+  },
+  {
+    title: "Listing & SEO",
     items: [
-      "cutoff_state_enabled",
-      "cutoff_state",
-      "cutoff_all_india_enabled",
-      "cutoff_all_india",
-      "cutoff_minority_enabled",
-      "cutoff_minority",
-      "cutoff_nri_enabled",
-      "cutoff_nri",
-      "govt_state_cutoff_enabled",
-      "govt_state_cutoff",
-      "government_college_aiq_cutoff_enabled",
-      "government_college_aiq_cutoff",
+      "isFeatured",
+      "priority",
+      "meta_title",
+      "meta_description",
+      "keywords",
     ],
   },
   {
-    title: "Complex JSON columns",
-    items: [
-      "clinical_excilence_lab",
-    ],
+    title: "Advanced — normally left blank",
+    items: ["slug"],
   },
 ];
 
 const IMPORT_TIPS = [
-  "Download the Excel template first. The first sheet is for data, the second sheet explains every column.",
-  "For multiple simple values, use semicolon-separated text like `MCC; State Counselling`.",
-  "Cutoff fields use JSON objects e.g. `{\"r1\":\"1200\",\"r2\":\"1400\"}`. Toggle fields accept `yes` or `no`.",
-  "If the slug already exists, the row updates that college instead of creating a duplicate.",
+  "These are the plain text and number fields of the college form, in the same order.",
+  "One value per cell. This file never uses JSON.",
+  "Numbers (NIRF_rank, priority, bed counts) must be plain numbers — no “#”, “Rank” or commas.",
+  "isFeatured accepts yes / no / true / false / 1 / 0.",
+  "Cutoffs have their own admin section and are never imported here. Courses, gallery, fee and intake tables are lists, so they stay in the college form.",
+  "Up to 1000 rows per upload.",
 ];
 
 const getApiErrorMessage = (error: unknown) => {
@@ -527,8 +549,9 @@ export default function CollegesPage() {
           <DialogHeader>
             <DialogTitle>College Excel Import Guide</DialogTitle>
             <DialogDescription>
-              Use the Excel template to match the college create form fields and
-              avoid failed rows.
+              Paste your rows into the template and upload. Only college_name is
+              required for updates, and blank cells never overwrite what is
+              already saved.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
@@ -536,14 +559,29 @@ export default function CollegesPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4 text-primary" />
-                  Best way to fill the sheet
+                  How it works
                 </CardTitle>
                 <CardDescription>
-                  Keep plain text columns simple and use JSON only for
-                  repeatable sections.
+                  The rules that cover every import.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <ol className="space-y-2">
+                  {IMPORT_STEPS.map((step, i) => (
+                    <li
+                      key={step}
+                      className="flex gap-2.5 text-xs text-muted-foreground"
+                    >
+                      <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                        {i + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+                <div className="border-t border-border/50 pt-3 text-xs font-semibold text-foreground">
+                  Value formats
+                </div>
                 {IMPORT_TIPS.map((tip) => (
                   <div
                     key={tip}
@@ -556,10 +594,10 @@ export default function CollegesPage() {
             </Card>
             <Card size="sm" className="ring-1 ring-border/60">
               <CardHeader>
-                <CardTitle>Column groups</CardTitle>
+                <CardTitle>Columns in the template</CardTitle>
                 <CardDescription>
-                  These groups now match the actual create-college form instead
-                  of older legacy import fields.
+                  Every column is optional except college_name. Delete any you
+                  do not need.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -738,6 +776,11 @@ export default function CollegesPage() {
                 <span className="text-blue-400">
                   ↑ {bulkUploadResult.updated} updated
                 </span>
+                {bulkUploadResult.skipped > 0 && (
+                  <span className="text-muted-foreground">
+                    – {bulkUploadResult.skipped} unchanged
+                  </span>
+                )}
                 {bulkUploadResult.failed > 0 && (
                   <span className="text-destructive">
                     ✗ {bulkUploadResult.failed} failed

@@ -119,6 +119,8 @@ export interface CollegeBulkUploadResult {
   totalRows: number;
   created: number;
   updated: number;
+  /** Matched an existing college but the row carried nothing to change. */
+  skipped: number;
   failed: number;
   errors: Array<{
     row: number;
